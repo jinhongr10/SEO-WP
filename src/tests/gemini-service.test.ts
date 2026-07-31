@@ -153,6 +153,51 @@ test('generateSEOFromTextContext rejects ok false responses with backend detail'
   }
 });
 
+test('generateSEO posts siteId and keywordCategory on the form payload', async () => {
+  const originalFetch = globalThis.fetch;
+  let capturedBody: FormData | null = null;
+  globalThis.fetch = (async (_input, init) => {
+    capturedBody = init?.body as FormData;
+    return new Response(JSON.stringify({
+      filename: 'product-sample.webp',
+      title: 'Product Sample | Demo Brand',
+      alt: 'compact product sample for deployment sites.',
+      caption: 'compact product sample for facility projects.',
+      description: 'Product sample metadata for deployment site buyers.',
+      generationContext: {
+        coreKeyword: 'product sample',
+        keywordCategory: 'soap-dispenser',
+        supportingKeywords: [],
+        sourceArtifacts: [{ id: 'a1', kind: 'company', title: 'Company' }],
+        appliedRules: [],
+        appliedTemplates: [],
+        usedKeywords: [],
+        warnings: [],
+      },
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }) as typeof fetch;
+
+  try {
+    const seo = await generateSEO(
+      '',
+      new Blob(['image-bytes'], { type: 'image/jpeg' }),
+      'product sample',
+      '',
+      '',
+      '',
+      { siteId: 'site-a', keywordCategory: 'soap-dispenser' },
+    );
+    assert.equal(capturedBody?.get('siteId'), 'site-a');
+    assert.equal(capturedBody?.get('keywordCategory'), 'soap-dispenser');
+    assert.equal(seo.generationContext?.sourceArtifacts[0]?.id, 'a1');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('generateBlogOutline rejects an empty AI response value', async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = (async () => (

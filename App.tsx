@@ -2540,7 +2540,18 @@ const App: React.FC = () => {
       if (shouldGenerateSeo) {
         updateImage(img.id, { status: ProcessingStatus.GENERATING_SEO });
         try {
-          const generated = await generateSEO(ai.apiKey, blob, keywordSeed, img.extraDesc, imageKeywordContext, useSkills ? activeKnowledgeContext : undefined);
+          const generated = await generateSEO(
+            ai.apiKey,
+            blob,
+            keywordSeed,
+            img.extraDesc,
+            imageKeywordContext,
+            useSkills ? activeKnowledgeContext : undefined,
+            {
+              siteId: activeSiteId || '',
+              keywordCategory: selectedCategory || '',
+            },
+          );
           seoData = normalizeSeoData(generated, fallback);
           updateImage(img.id, { seoSource: 'gemini' });
         } catch (e) {
@@ -2673,7 +2684,18 @@ const App: React.FC = () => {
       const fallback = fallbackSEO(imageToRegenerate);
       const keywordSeed = imageToRegenerate.mainKeyword.trim() || fallback.title || 'image';
       updateImage(imageToRegenerate.id, { status: ProcessingStatus.GENERATING_SEO, errorMessage: undefined });
-      const generated = await generateSEO(resolvedAi.apiKey, imageToRegenerate.processedBlob, keywordSeed, imageToRegenerate.extraDesc, imageKeywordContext, useSkills ? activeKnowledgeContext : undefined);
+      const generated = await generateSEO(
+        resolvedAi.apiKey,
+        imageToRegenerate.processedBlob,
+        keywordSeed,
+        imageToRegenerate.extraDesc,
+        imageKeywordContext,
+        useSkills ? activeKnowledgeContext : undefined,
+        {
+          siteId: activeSiteId || '',
+          keywordCategory: selectedCategory || '',
+        },
+      );
       const seoData = normalizeSeoData(generated, fallback);
       updateImage(imageToRegenerate.id, { seoData, seoSource: 'gemini', status: ProcessingStatus.COMPLETED, wpData: undefined });
       return true;

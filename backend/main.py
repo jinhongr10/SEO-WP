@@ -3625,19 +3625,14 @@ def _decrypt_profile_settings(profile: dict[str, Any]) -> dict[str, Any]:
     return settings
 
 
-def _active_client_profile_settings() -> Optional[dict[str, Any]]:
-    if not CLIENT_PROFILES_FILE.exists():
-        return None
-    store = _load_client_profile_store(create=False)
-    if not store.get("profiles"):
-        return None
+def _settings_for_client_profile(profile: dict[str, Any]) -> dict[str, Any]:
     global_settings = _read_settings()
     global_settings_for_profile = {
         key: value
         for key, value in global_settings.items()
         if key in GLOBAL_SETTING_KEYS
     }
-    profile_settings = _decrypt_profile_settings(_active_client_profile(store))
+    profile_settings = _decrypt_profile_settings(profile)
     legacy_global_from_profile = {
         key: value
         for key, value in profile_settings.items()
@@ -3645,6 +3640,24 @@ def _active_client_profile_settings() -> Optional[dict[str, Any]]:
     }
     site_settings = {key: value for key, value in profile_settings.items() if key in SITE_SCOPED_SETTING_KEYS}
     return {**global_settings_for_profile, **legacy_global_from_profile, **site_settings}
+
+
+def _client_profile_settings_by_id(site_id: str) -> dict[str, Any]:
+    clean_id = str(site_id or "").strip()
+    if not clean_id:
+        raise HTTPException(status_code=400, detail="siteId is required")
+    store = _load_client_profile_store(create=True)
+    profile = _find_client_profile(store, clean_id)
+    return _settings_for_client_profile(profile)
+
+
+def _active_client_profile_settings() -> Optional[dict[str, Any]]:
+    if not CLIENT_PROFILES_FILE.exists():
+        return None
+    store = _load_client_profile_store(create=False)
+    if not store.get("profiles"):
+        return None
+    return _settings_for_client_profile(_active_client_profile(store))
 
 
 def _effective_settings() -> dict[str, Any]:
@@ -8998,8 +9011,14 @@ async def wp_upload(
     wpUrl: str = Form(""),
     wpUser: str = Form(""),
     wpAppPass: str = Form(""),
+    siteId: str = Form(""),
 ):
-    stored = _effective_settings()
+    # Direct coroutine calls (unit tests) may receive the Form default object.
+    clean_site_id = siteId.strip() if isinstance(siteId, str) else ""
+    if clean_site_id:
+        stored = _client_profile_settings_by_id(clean_site_id)
+    else:
+        stored = _effective_settings()
     wp_url = (
         wpUrl.strip()
         or _settings_or_env(stored, "wpUrl", "WP_URL", "WP_BASE_URL")

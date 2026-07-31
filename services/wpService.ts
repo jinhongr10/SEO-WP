@@ -108,7 +108,8 @@ export const uploadToWordPress = async (
   blob: Blob,
   seo: SEOData,
   useProxy: boolean = false,
-  backendUrl?: string
+  backendUrl?: string,
+  options: { siteId?: string } = {},
 ): Promise<WPData> => {
   const uploadFilename = normalizeUploadFilename(seo.filename, 'image.webp');
   const uploadSeo = { ...seo, filename: uploadFilename };
@@ -118,6 +119,7 @@ export const uploadToWordPress = async (
     const formData = new FormData();
     formData.append('file', blob, uploadFilename);
     formData.append('seoData', JSON.stringify(uploadSeo));
+    if (options.siteId) formData.append('siteId', options.siteId);
     if (url) formData.append('wpUrl', url);
     if (user) formData.append('wpUser', user);
     if (appPass) formData.append('wpAppPass', appPass);

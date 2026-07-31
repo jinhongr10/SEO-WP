@@ -4,6 +4,7 @@ import test from 'node:test';
 import { ProcessingStatus, SEOData, WorkImage } from '../../types.ts';
 import {
   applyBatchKeywordToImages,
+  assertImageBelongsToActiveSite,
   describeKnowledgeUsage,
   getImageProcessQueue,
   getImageTaskSummary,
@@ -198,6 +199,36 @@ test('upload queue includes selected completed images with blobs and seo data', 
   const queue = getImageUploadQueue([missingBlob, ready], ['ready', 'missing-blob']);
 
   assert.deepEqual(queue.map(item => item.id), ['ready']);
+});
+
+test('upload queue excludes drafts bound to a different site', () => {
+  const local = {
+    ...image('local', ProcessingStatus.COMPLETED),
+    siteId: 'site-a',
+    processedBlob: new Blob(['a']),
+    seoData: {
+      filename: 'a.webp',
+      title: 'A',
+      alt: 'A',
+      caption: 'A',
+      description: 'A',
+    },
+  };
+  const foreign = {
+    ...local,
+    id: 'foreign',
+    siteId: 'site-b',
+  };
+  const queue = getImageUploadQueue([local, foreign], ['local', 'foreign'], { activeSiteId: 'site-a' });
+  assert.deepEqual(queue.map(item => item.id), ['local']);
+});
+
+test('assertImageBelongsToActiveSite blocks cross-site upload', () => {
+  assert.doesNotThrow(() => assertImageBelongsToActiveSite({ siteId: 'site-a' }, 'site-a'));
+  assert.throws(
+    () => assertImageBelongsToActiveSite({ siteId: 'site-a' }, 'site-b'),
+    /其他网站/,
+  );
 });
 
 test('task summary can count multiple uploading images', () => {

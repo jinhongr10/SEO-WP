@@ -36,6 +36,7 @@ import {
 } from './components/Icons';
 import {
   applyBatchKeywordToImages,
+  assertImageBelongsToActiveSite,
   describeKnowledgeUsage,
   getImageProcessQueue,
   getImageTaskSummary,
@@ -2368,7 +2369,19 @@ const App: React.FC = () => {
     for (const file of imageFiles) {
       try {
         const { width, height } = await loadImage(file);
-        newImages.push({ id: Math.random().toString(36).substring(7), file, previewUrl: URL.createObjectURL(file), targetWidth: 1200, quality: 0.75, mainKeyword: '', extraDesc: '', originalSize: file.size, originalDimensions: { width, height }, status: ProcessingStatus.IDLE });
+        newImages.push({
+          id: Math.random().toString(36).substring(7),
+          file,
+          previewUrl: URL.createObjectURL(file),
+          siteId: activeSiteId || undefined,
+          targetWidth: 1200,
+          quality: 0.75,
+          mainKeyword: '',
+          extraDesc: '',
+          originalSize: file.size,
+          originalDimensions: { width, height },
+          status: ProcessingStatus.IDLE,
+        });
       } catch (err) { console.error("Failed to load image", file.name, err); }
     }
     setImages(prev => [...prev, ...newImages]);
@@ -2612,12 +2625,26 @@ const App: React.FC = () => {
   const uploadSingleImageToWp = async (imageToUpload: WorkImage) => {
     if (!imageToUpload.processedBlob) return false;
     if (isImageTaskRunning(imageToUpload.status) || uploadingImageIds.has(imageToUpload.id) || uploadTaskIdsRef.current.has(imageToUpload.id)) return false;
+    assertImageBelongsToActiveSite(imageToUpload, activeSiteId);
+    const uploadSiteId = String(imageToUpload.siteId || activeSiteId || '').trim();
+    if (!uploadSiteId) {
+      throw new Error('当前没有活动站点，无法上传图片');
+    }
     uploadTaskIdsRef.current.add(imageToUpload.id);
     setUploadingImageIds(prev => new Set(prev).add(imageToUpload.id));
     try {
       updateImage(imageToUpload.id, { status: ProcessingStatus.UPLOADING });
       const seoData = imageToUpload.seoData || fallbackSEO(imageToUpload);
-      const wpData = await uploadToWordPress('', '', '', imageToUpload.processedBlob, seoData, true, resolvedBackendUrl);
+      const wpData = await uploadToWordPress(
+        '',
+        '',
+        '',
+        imageToUpload.processedBlob,
+        seoData,
+        true,
+        resolvedBackendUrl,
+        { siteId: uploadSiteId },
+      );
       updateImage(imageToUpload.id, { wpData, status: ProcessingStatus.COMPLETED });
       return true;
     } catch (error: any) {
@@ -3228,7 +3255,7 @@ const App: React.FC = () => {
   );
   const imageTaskSummary = getImageTaskSummary(images, activeId, uploadingImageIds);
   const isActiveImageBusy = imageTaskSummary.activeBusy;
-  const selectedReadyToUploadCount = getImageUploadQueue(images, selectedImageIds).length;
+  const selectedReadyToUploadCount = getImageUploadQueue(images, selectedImageIds, { activeSiteId }).length;
   const selectedProcessedCount = images.filter(img => selectedImageIds.includes(img.id) && img.processedBlob).length;
   const selectedBusyCount = images.filter(img => selectedImageIds.includes(img.id) && (
     isImageTaskRunning(img.status) || uploadingImageIds.has(img.id)

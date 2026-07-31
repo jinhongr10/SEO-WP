@@ -217,6 +217,102 @@ class WpUploadConfigValidationTests(unittest.TestCase):
         self.assertIn("media ID", str(ctx.exception.detail))
         self.assertEqual(len(calls), 1)
 
+    def test_wp_upload_uses_requested_site_settings_not_active_site(self):
+        store = {
+            "activeProfileId": "site-b",
+            "profiles": [
+                {
+                    "id": "site-a",
+                    "name": "Site A",
+                    "settings": {
+                        "wpUrl": "https://site-a.example.net",
+                        "wpUser": "user-a",
+                        "wpAppPass": "pass-a",
+                    },
+                    "secrets": {},
+                },
+                {
+                    "id": "site-b",
+                    "name": "Site B",
+                    "settings": {
+                        "wpUrl": "https://site-b.example.net",
+                        "wpUser": "user-b",
+                        "wpAppPass": "pass-b",
+                    },
+                    "secrets": {},
+                },
+            ],
+        }
+        captured = {}
+
+        async def request_side_effect(method, endpoint, **kwargs):
+            if method == "POST" and endpoint.endswith("/media"):
+                captured["endpoint"] = endpoint
+                captured["auth"] = kwargs.get("auth")
+                return FakeAsyncResponse(
+                    {
+                        "id": 11,
+                        "source_url": "https://site-a.example.net/wp-content/uploads/sample.webp",
+                        "link": "https://site-a.example.net/?attachment_id=11",
+                    },
+                    status_code=201,
+                )
+            return FakeAsyncResponse({"id": 11}, status_code=200)
+
+        with patch.object(backend_main, "_load_client_profile_store", return_value=store), \
+             patch.object(backend_main, "_read_settings", return_value={}), \
+             patch.object(backend_main, "_http_async_request_with_proxy_fallback", side_effect=request_side_effect):
+            result = asyncio.run(
+                backend_main.wp_upload(
+                    file=FakeUploadFile("sample.jpg", b"image-bytes", "image/jpeg"),
+                    seoData='{"filename":"sample.webp","title":"t","alt":"a","caption":"c","description":"d"}',
+                    wpUrl="",
+                    wpUser="",
+                    wpAppPass="",
+                    siteId="site-a",
+                )
+            )
+
+        self.assertEqual(captured.get("endpoint"), "https://site-a.example.net/wp-json/wp/v2/media")
+        self.assertEqual(captured.get("auth"), ("user-a", "pass-a"))
+        self.assertEqual(int(result.get("id") or 0), 11)
+
+    def test_wp_upload_rejects_unknown_site_id(self):
+        store = {
+            "activeProfileId": "site-a",
+            "profiles": [
+                {
+                    "id": "site-a",
+                    "name": "Site A",
+                    "settings": {
+                        "wpUrl": "https://site-a.example.net",
+                        "wpUser": "user-a",
+                        "wpAppPass": "pass-a",
+                    },
+                    "secrets": {},
+                },
+            ],
+        }
+
+        async def unexpected_upload(*args, **kwargs):
+            raise AssertionError("unknown siteId should fail before HTTP upload")
+
+        with patch.object(backend_main, "_load_client_profile_store", return_value=store), \
+             patch.object(backend_main, "_http_async_request_with_proxy_fallback", unexpected_upload):
+            with self.assertRaises(HTTPException) as ctx:
+                asyncio.run(
+                    backend_main.wp_upload(
+                        file=FakeUploadFile("sample.jpg", b"image-bytes", "image/jpeg"),
+                        seoData="{}",
+                        wpUrl="",
+                        wpUser="",
+                        wpAppPass="",
+                        siteId="missing-site",
+                    )
+                )
+
+        self.assertEqual(ctx.exception.status_code, 404)
+
     def test_rejects_placeholder_wordpress_url_before_woocommerce_product_upload(self):
         client = TestClient(backend_main.app, raise_server_exceptions=False)
         settings = {

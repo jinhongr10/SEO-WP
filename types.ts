@@ -58,6 +58,8 @@ export interface WorkImage {
   id: string; // Unique UI ID
   file: File;
   previewUrl: string;
+  /** Site that owns this draft; used to block cross-site upload. */
+  siteId?: string;
 
   // Configuration
   targetWidth: number;

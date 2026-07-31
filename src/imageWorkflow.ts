@@ -82,15 +82,33 @@ export const applyBatchKeywordToImages = (
 export const getImageUploadQueue = (
   images: WorkImage[],
   selectedIds: string[],
+  options: { activeSiteId?: string } = {},
 ): WorkImage[] => {
   const selected = new Set(selectedIds);
+  const activeSiteId = String(options.activeSiteId || '').trim();
   return images.filter(img => (
     selected.has(img.id)
     && !isImageTaskRunning(img.status)
     && Boolean(img.processedBlob)
     && Boolean(img.seoData)
     && !img.wpData
+    && (!activeSiteId || !img.siteId || img.siteId === activeSiteId)
   ));
+};
+
+/** Guard before WP upload: drafts must belong to the currently active site. */
+export const assertImageBelongsToActiveSite = (
+  image: Pick<WorkImage, 'siteId'>,
+  activeSiteId: string,
+): void => {
+  const draftSiteId = String(image.siteId || '').trim();
+  const currentSiteId = String(activeSiteId || '').trim();
+  if (draftSiteId && currentSiteId && draftSiteId !== currentSiteId) {
+    throw new Error('该图片草稿属于其他网站，不能同步到当前网站');
+  }
+  if (!draftSiteId && !currentSiteId) {
+    throw new Error('当前没有活动站点，无法上传图片');
+  }
 };
 
 export const getImageBusyText = (status?: ProcessingStatus | null) => {

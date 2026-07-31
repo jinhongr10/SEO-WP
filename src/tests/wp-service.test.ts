@@ -266,4 +266,36 @@ describe('uploadToWordPress direct mode errors', () => {
       globalThis.fetch = originalFetch;
     }
   });
+
+  it('includes siteId on proxy upload form data', async () => {
+    const originalFetch = globalThis.fetch;
+    let body: FormData | null = null;
+    globalThis.fetch = (async (_url: RequestInfo | URL, init?: RequestInit) => {
+      body = init?.body as FormData;
+      return new Response(JSON.stringify({
+        id: 7,
+        source_url: 'https://wp.example/wp-content/uploads/product-sample.webp',
+        link: 'https://wp.example/?attachment_id=7',
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }) as typeof fetch;
+
+    try {
+      await uploadToWordPress(
+        '',
+        '',
+        '',
+        new Blob(['image'], { type: 'image/webp' }),
+        seo,
+        true,
+        '/api',
+        { siteId: 'site-a' },
+      );
+      assert.equal(body?.get('siteId'), 'site-a');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
 });

@@ -6079,6 +6079,8 @@ def set_active_client_profile(payload: ClientProfileActivePayload):
     store["activeProfileId"] = profile["id"]
     store["activeSiteId"] = profile["id"]
     _write_client_profile_store(store)
+    # In-memory SEO health cache is process-global; drop it on site switch.
+    _clear_seo_health_summary_cache()
     return {"ok": True, "activeProfileId": profile["id"]}
 
 
@@ -12083,7 +12085,7 @@ SEO_HEALTH_SUMMARY_CACHE_SECONDS = 120
 SEO_HEALTH_BLOG_SCAN_TIMEOUT_SECONDS = 8
 SEO_HEALTH_DEFAULT_ISSUE_LIMIT = 200
 SEO_HEALTH_MAX_ISSUE_LIMIT = 500
-_seo_health_summary_cache: dict[tuple[int], tuple[float, dict[str, Any]]] = {}
+_seo_health_summary_cache: dict[tuple[str, int], tuple[float, dict[str, Any]]] = {}
 _seo_health_summary_cache_lock = threading.Lock()
 _seo_health_background_refresh_lock = threading.Lock()
 SEO_DIAGNOSTICS_SUMMARY_CACHE_SECONDS = 120
@@ -12095,13 +12097,24 @@ def _copy_seo_health_summary(summary: dict[str, Any]) -> dict[str, Any]:
     return json.loads(json.dumps(summary))
 
 
+def _seo_health_cache_site_id() -> str:
+    try:
+        return str(_active_storage_site_id() or "").strip()
+    except HTTPException:
+        return ""
+
+
+def _seo_health_cache_key(blog_limit: int) -> tuple[str, int]:
+    return (_seo_health_cache_site_id(), int(blog_limit))
+
+
 def _clear_seo_health_summary_cache() -> None:
     with _seo_health_summary_cache_lock:
         _seo_health_summary_cache.clear()
 
 
 def _get_cached_seo_health_summary(blog_limit: int) -> Optional[dict[str, Any]]:
-    cache_key = (blog_limit,)
+    cache_key = _seo_health_cache_key(blog_limit)
     now = time.monotonic()
     with _seo_health_summary_cache_lock:
         cached = _seo_health_summary_cache.get(cache_key)
@@ -12118,7 +12131,7 @@ def _get_cached_seo_health_summary(blog_limit: int) -> Optional[dict[str, Any]]:
 
 
 def _get_any_cached_seo_health_summary(blog_limit: int) -> tuple[Optional[dict[str, Any]], bool]:
-    cache_key = (blog_limit,)
+    cache_key = _seo_health_cache_key(blog_limit)
     now = time.monotonic()
     with _seo_health_summary_cache_lock:
         cached = _seo_health_summary_cache.get(cache_key)
@@ -12134,7 +12147,7 @@ def _get_any_cached_seo_health_summary(blog_limit: int) -> tuple[Optional[dict[s
 def _set_cached_seo_health_summary(blog_limit: int, summary: dict[str, Any]) -> dict[str, Any]:
     cached_summary = _copy_seo_health_summary(summary)
     with _seo_health_summary_cache_lock:
-        _seo_health_summary_cache[(blog_limit,)] = (time.monotonic(), cached_summary)
+        _seo_health_summary_cache[_seo_health_cache_key(blog_limit)] = (time.monotonic(), cached_summary)
     return _copy_seo_health_summary(cached_summary)
 
 

@@ -312,6 +312,20 @@ class SeoHealthScoringTests(unittest.TestCase):
         self.assertIn("产品缓存还没有扫描，请先同步 WooCommerce 产品。", summary["warnings"])
         self.assertTrue(any("博客扫描失败" in warning for warning in summary["warnings"]))
 
+    def test_seo_health_cache_is_partitioned_by_active_site(self):
+        backend_main._clear_seo_health_summary_cache()
+        site_a = {"groups": [{"key": "products", "label": "A", "score": 10, "total": 1, "critical": 0, "warnings": 0, "notices": 0, "available": True, "summary": "a"}], "issues": [], "warnings": [], "updatedAt": "2026-01-01T00:00:00Z"}
+        site_b = {"groups": [{"key": "products", "label": "B", "score": 90, "total": 1, "critical": 0, "warnings": 0, "notices": 0, "available": True, "summary": "b"}], "issues": [], "warnings": [], "updatedAt": "2026-01-01T00:00:00Z"}
+
+        with patch.object(backend_main, "_seo_health_cache_site_id", side_effect=["site-a", "site-a", "site-b", "site-b"]):
+            backend_main._set_cached_seo_health_summary(5, site_a)
+            cached_a = backend_main._get_cached_seo_health_summary(5)
+            backend_main._set_cached_seo_health_summary(5, site_b)
+            cached_b = backend_main._get_cached_seo_health_summary(5)
+
+        self.assertEqual(cached_a["groups"][0]["label"], "A")
+        self.assertEqual(cached_b["groups"][0]["label"], "B")
+
     def test_summary_endpoint_reuses_recent_cache_until_forced(self):
         backend_main._clear_seo_health_summary_cache()
         calls = {"products": 0, "media": 0, "blog": 0, "pagePlanner": 0}

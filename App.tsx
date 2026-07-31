@@ -2179,8 +2179,27 @@ const App: React.FC = () => {
       await reloadSettingsAndContext(backendUrl);
       setSelectedCategory('');
       setSelectedCategoryKeywordContext('');
-      setBlogState(prev => ({ ...prev, keywordContext: '', keywordFileName: '' }));
-      setImageNotice('当前站点已切换，配置、关键词和知识库已刷新。');
+      setBlogState(prev => ({
+        ...prev,
+        keywordContext: '',
+        keywordFileName: '',
+        topic: '',
+        keywords: '',
+        outline: '',
+        content: '',
+        seo: undefined,
+        errorMessage: undefined,
+        status: BlogStatus.IDLE,
+      }));
+      // Image drafts are site-bound; drop them so leftovers cannot upload to the wrong WP.
+      setImages([]);
+      setActiveId(null);
+      setSelectedImageIds([]);
+      setUploadingImageIds(new Set());
+      setImageKeywordContext('');
+      setImageKeywordFileName('');
+      setBatchImageKeyword('');
+      setImageNotice('当前站点已切换，配置、关键词、图片草稿和知识库已刷新。');
     } catch (error: any) {
       await showAppAlert('切换站点失败：' + (error?.message || String(error)), { title: '切换失败', tone: 'danger' });
     } finally {

@@ -6000,6 +6000,20 @@ def list_site_profile_summaries():
     return _load_site_profile_summaries()
 
 
+@app.get("/site-profiles/{site_id}")
+def get_site_profile(site_id: str):
+    """Return one full site profile without shipping every site's knowledge markdown."""
+    store = _load_client_profile_store(create=True)
+    profile = _find_client_profile(store, site_id)
+    active_id = str(store.get("activeProfileId") or "")
+    site = _site_profile_public(profile, active_id)
+    return {
+        "company": _normalize_company_profile(store.get("company")),
+        "activeSiteId": active_id,
+        "site": site,
+    }
+
+
 @app.put("/company-profile")
 def save_company_profile(payload: CompanyProfilePayload):
     store = _load_client_profile_store(create=True)

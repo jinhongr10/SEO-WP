@@ -80,7 +80,7 @@ import {
   createSiteProfile,
   deleteSiteProfile,
   fetchSiteProfileSummaries,
-  fetchSiteProfiles,
+  fetchSiteProfilesActiveDetail,
   importSiteStyleKit,
   saveCompanyProfile,
   setActiveSiteProfile,
@@ -1893,7 +1893,7 @@ const App: React.FC = () => {
     }
   }, [settings.backendUrl]);
 
-  const applySiteProfilesResult = useCallback((result: Awaited<ReturnType<typeof fetchSiteProfiles>>) => {
+  const applySiteProfilesResult = useCallback((result: Awaited<ReturnType<typeof fetchSiteProfilesActiveDetail>>) => {
     setCompanyProfile(result.company);
     setSiteProfiles(result.sites);
     setActiveSiteId(result.activeSiteId);
@@ -1907,9 +1907,10 @@ const App: React.FC = () => {
     const summaryOnly = options.summaryOnly !== false;
     setSiteProfileBusy(true);
     try {
+      // Full detail is only needed for the active site (knowledge markdown can be large).
       const result = summaryOnly
         ? await fetchSiteProfileSummaries(backendUrl)
-        : await fetchSiteProfiles(backendUrl);
+        : await fetchSiteProfilesActiveDetail(backendUrl);
       if (!summaryOnly) siteProfilesDetailedRef.current = true;
       applySiteProfilesResult(result);
     } catch (error) {
@@ -2097,7 +2098,7 @@ const App: React.FC = () => {
 	  const reloadSettingsAndContext = useCallback(async (apiBaseOverride?: string) => {
 	    const backendUrl = apiBaseOverride || settings.backendUrl || API_BASE;
 	    const [profilesResult, remote] = await Promise.all([
-	      fetchSiteProfiles(backendUrl),
+	      fetchSiteProfilesActiveDetail(backendUrl),
 	      fetchSettings(),
 	    ]);
       siteProfilesDetailedRef.current = true;

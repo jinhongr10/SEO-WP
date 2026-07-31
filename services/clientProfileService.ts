@@ -1037,6 +1037,39 @@ export const fetchSiteProfileSummaries = async (apiBase = "/api"): Promise<SiteP
   validateSiteProfiles(await requestJson<unknown>("/site-profiles/summary", undefined, apiBase))
 );
 
+export const fetchSiteProfileDetail = async (
+  siteId: string,
+  apiBase = "/api",
+): Promise<SiteProfile> => {
+  const cleanId = cleanText(siteId);
+  if (!cleanId) throw new Error("site id is required");
+  const result = await requestJson<unknown>(
+    `/site-profiles/${encodeURIComponent(cleanId)}`,
+    undefined,
+    apiBase,
+  );
+  if (!isRecord(result) || !isRecord(result.site)) {
+    throw new Error("Invalid site profile detail response");
+  }
+  return validateSiteProfiles({
+    activeSiteId: cleanText(result.activeSiteId),
+    company: isRecord(result.company) ? result.company as CompanyProfile : { name: "" },
+    sites: [result.site as SiteProfile],
+  }).sites[0];
+};
+
+/** Summary list for every site + full detail for the active site only. */
+export const fetchSiteProfilesActiveDetail = async (apiBase = "/api"): Promise<SiteProfilesResponse> => {
+  const summaries = await fetchSiteProfileSummaries(apiBase);
+  const activeSiteId = cleanText(summaries.activeSiteId);
+  if (!activeSiteId) return summaries;
+  const detail = await fetchSiteProfileDetail(activeSiteId, apiBase);
+  return {
+    ...summaries,
+    sites: summaries.sites.map(site => (site.id === activeSiteId ? { ...site, ...detail } : site)),
+  };
+};
+
 export const createClientProfile = async (
   payload: {
     name: string;

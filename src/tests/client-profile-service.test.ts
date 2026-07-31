@@ -47,6 +47,131 @@ test('profile validators refresh saved defaults but preserve configured rules', 
   assert.equal(refreshedBulk.variants.standard.ctaText, '');
 });
 
+test('fetchSiteProfilesActiveDetail loads full detail only for the active site', async () => {
+  const service = await import('../../services/clientProfileService.ts');
+  const originalFetch = globalThis.fetch;
+  const urls: string[] = [];
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const url = String(input);
+    urls.push(url);
+    if (url.includes('/site-profiles/summary')) {
+      return new Response(JSON.stringify({
+        company: { name: 'Co' },
+        activeSiteId: 'site-a',
+        sites: [
+          {
+            id: 'site-a',
+            name: 'A',
+            siteName: 'A',
+            siteUrl: '',
+            brandName: '',
+            active: true,
+            settings: {},
+            secretRefs: {},
+            knowledgeSources: [],
+            knowledgeArtifacts: [],
+            templatePack: {},
+            styleKit: {},
+            blogFrameworks: [],
+            blogFrameworkStandard: service.defaultBlogFrameworkStandard(),
+            bulkBlogFormat: service.defaultBulkBlogFormat(),
+            blogFormatStandard: {},
+            faqs: [],
+            internalLinkSettings: {},
+            rulePack: { version: 0, fieldRules: {}, taskContexts: {}, sourceArtifactIds: [], status: 'draft', updatedAt: '' },
+            generationSessions: [],
+            skillPacks: [],
+            activeSkillPackId: '',
+            createdAt: '',
+            updatedAt: '',
+            counts: { knowledgeSources: 0, knowledgeArtifacts: 0, generationSessions: 0, skillPacks: 0, faqs: 0 },
+          },
+          {
+            id: 'site-b',
+            name: 'B',
+            siteName: 'B',
+            siteUrl: '',
+            brandName: '',
+            active: false,
+            settings: {},
+            secretRefs: {},
+            knowledgeSources: [],
+            knowledgeArtifacts: [],
+            templatePack: {},
+            styleKit: {},
+            blogFrameworks: [],
+            blogFrameworkStandard: service.defaultBlogFrameworkStandard(),
+            bulkBlogFormat: service.defaultBulkBlogFormat(),
+            blogFormatStandard: {},
+            faqs: [],
+            internalLinkSettings: {},
+            rulePack: { version: 0, fieldRules: {}, taskContexts: {}, sourceArtifactIds: [], status: 'draft', updatedAt: '' },
+            generationSessions: [],
+            skillPacks: [],
+            activeSkillPackId: '',
+            createdAt: '',
+            updatedAt: '',
+            counts: { knowledgeSources: 0, knowledgeArtifacts: 1, generationSessions: 0, skillPacks: 0, faqs: 0 },
+          },
+        ],
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    if (url.includes('/site-profiles/site-a')) {
+      return new Response(JSON.stringify({
+        company: { name: 'Co' },
+        activeSiteId: 'site-a',
+        site: {
+          id: 'site-a',
+          name: 'A',
+          siteName: 'A',
+          siteUrl: '',
+          brandName: '',
+          active: true,
+          settings: {},
+          secretRefs: {},
+          knowledgeSources: [],
+          knowledgeArtifacts: [{
+            id: 'art-1',
+            kind: 'company',
+            title: 'Profile',
+            status: 'reviewed',
+            markdown: '# Company facts',
+            sourceIds: [],
+            updatedAt: '',
+          }],
+          templatePack: {},
+          styleKit: {},
+          blogFrameworks: [],
+          blogFrameworkStandard: service.defaultBlogFrameworkStandard(),
+          bulkBlogFormat: service.defaultBulkBlogFormat(),
+          blogFormatStandard: {},
+          faqs: [],
+          internalLinkSettings: {},
+          rulePack: { version: 0, fieldRules: {}, taskContexts: {}, sourceArtifactIds: [], status: 'draft', updatedAt: '' },
+          generationSessions: [],
+          skillPacks: [],
+          activeSkillPackId: '',
+          createdAt: '',
+          updatedAt: '',
+        },
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    throw new Error(`unexpected url ${url}`);
+  }) as typeof fetch;
+
+  try {
+    const result = await service.fetchSiteProfilesActiveDetail('/api');
+    assert.equal(result.sites.length, 2);
+    assert.equal(result.sites.find(site => site.id === 'site-a')?.knowledgeArtifacts?.[0]?.id, 'art-1');
+    assert.equal(result.sites.find(site => site.id === 'site-b')?.knowledgeArtifacts?.length || 0, 0);
+    assert.ok(urls.some(url => url.includes('/site-profiles/summary')));
+    assert.ok(urls.some(url => url.includes('/site-profiles/site-a')));
+    assert.equal(urls.some(url => url.includes('/site-profiles/site-b')), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('legacy client profile service lists profiles and switches the active profile', async () => {
   const service = await import('../../services/clientProfileService.ts');
   const originalFetch = globalThis.fetch;

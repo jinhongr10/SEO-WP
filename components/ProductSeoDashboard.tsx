@@ -1878,6 +1878,8 @@ export const ProductSeoDashboard: React.FC<{
     theme: any;
     backendUrl?: string;
     siteId?: string;
+    /** When false, background polling is paused (hidden persistent workbench). */
+    isActive?: boolean;
     getApiKey: () => string;
     requireApiKey: (cb: () => void) => void;
     onNotice: (msg: string | null) => void;
@@ -1898,6 +1900,7 @@ export const ProductSeoDashboard: React.FC<{
     theme,
     backendUrl = '/api',
     siteId = '',
+    isActive = true,
     getApiKey,
     requireApiKey,
     onNotice,
@@ -2604,8 +2607,8 @@ export const ProductSeoDashboard: React.FC<{
         fetchTagHistory();
     }, [fetchTagHistory]);
 
-    // Auto-refresh every 5s silently.
-    usePolling(() => fetchProducts(true), { intervalMs: 5000 });
+    // Auto-refresh every 5s silently while this workbench is visible.
+    usePolling(() => fetchProducts(true), { enabled: isActive, intervalMs: 5000 });
 
     const handleSaveOriginalProductInfo = async (id: number) => {
         try {

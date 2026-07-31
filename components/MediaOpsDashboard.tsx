@@ -233,6 +233,8 @@ export const MediaOpsDashboard: React.FC<{
   canSyncToWordPress?: boolean;
   focusRequest?: MediaOpsFocusRequestInput | null;
   siteId?: string;
+  /** When false, background polling is paused (hidden persistent workbench). */
+  isActive?: boolean;
 }> = ({
   theme,
   settings,
@@ -246,6 +248,7 @@ export const MediaOpsDashboard: React.FC<{
   canSyncToWordPress = true,
   focusRequest = null,
   siteId = '',
+  isActive = true,
 }) => {
   const [report, setReport] = useState<MediaOpsReport | null>(null);
   const [lastGenerationContext, setLastGenerationContext] = useState<GenerationContextSummaryData | null>(null);
@@ -461,7 +464,7 @@ export const MediaOpsDashboard: React.FC<{
     return () => { active = false; };
   }, [onNotice, siteId]);
 
-  usePolling(fetchReport, { intervalMs: 3000 });
+  usePolling(fetchReport, { enabled: isActive, intervalMs: 3000 });
 
   useEffect(() => {
     if (!normalizedFocusRequest) return;
@@ -497,7 +500,7 @@ export const MediaOpsDashboard: React.FC<{
     prevRunning.current = reportStatus.isRunning;
   }, [reportStatus.isRunning, fetchList, fetchReviewItems]);
 
-  usePolling(fetchStableList, { enabled: reportStatus.isRunning, intervalMs: 5000 });
+  usePolling(fetchStableList, { enabled: isActive && reportStatus.isRunning, intervalMs: 5000 });
 
   const apiCall = async (endpoint: 'scan' | 'run' | 'stop', body: any, successMsg?: string) => {
     setMediaOperationBusy(endpoint);

@@ -4320,6 +4320,7 @@ const App: React.FC = () => {
                     canSyncToWordPress={canSyncBlogToWordPress}
                     focusRequest={mediaOpsFocusRequest}
                     siteId={activeSiteId}
+                    isActive={viewMode === 'mediaWorkspace' && mediaWorkspaceMode === 'mediaOps'}
                   />
                 </Suspense>
               </div>
@@ -4866,6 +4867,7 @@ const App: React.FC = () => {
                 theme={theme}
                 backendUrl={settings.backendUrl || '/api'}
                 siteId={activeSiteProfile?.id || ''}
+                isActive={viewMode === 'productSeo'}
                 getApiKey={getApiKey}
                 requireApiKey={requireApiKey}
                 onNotice={setImageNotice}

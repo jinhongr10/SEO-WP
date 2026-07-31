@@ -1,4 +1,35 @@
-import { ProcessingStatus, WorkImage } from '../types';
+import { ProcessingStatus, SEOData, WorkImage } from '../types';
+
+/** Merge generated SEO onto fallback while preserving diagnostic fields. */
+export const normalizeSeoData = (seo: SEOData | undefined, fallback: SEOData): SEOData => ({
+  filename: seo?.filename?.trim() || fallback.filename,
+  title: seo?.title?.trim() || fallback.title,
+  alt: seo?.alt?.trim() || fallback.alt,
+  caption: seo?.caption?.trim() || fallback.caption,
+  description: seo?.description?.trim() || fallback.description,
+  ...(seo?.keywordUsage ? { keywordUsage: seo.keywordUsage } : {}),
+  ...(seo?.generationContext ? { generationContext: seo.generationContext } : {}),
+});
+
+/** User-facing knowledge-base status for image/blog generation bars. */
+export const describeKnowledgeUsage = (options: {
+  useSkills: boolean;
+  hasActiveContext: boolean;
+  reviewedArtifactCount?: number;
+}): { tone: 'off' | 'ready' | 'empty'; label: string } => {
+  if (!options.useSkills) {
+    return { tone: 'off', label: '未启用站点资料库' };
+  }
+  if (options.hasActiveContext) {
+    const count = options.reviewedArtifactCount;
+    const suffix = typeof count === 'number' && count > 0 ? ` · 已审核资料 ${count} 条` : '';
+    return { tone: 'ready', label: `站点资料与规则已加载${suffix}` };
+  }
+  return {
+    tone: 'empty',
+    label: '已开启资料库，但当前站点没有已审核资料，结果可能偏通用',
+  };
+};
 
 export const IMAGE_TASK_RUNNING_STATUSES = [
   ProcessingStatus.PROCESSING,

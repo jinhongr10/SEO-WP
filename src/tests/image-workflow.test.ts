@@ -1,13 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { ProcessingStatus, WorkImage } from '../../types.ts';
+import { ProcessingStatus, SEOData, WorkImage } from '../../types.ts';
 import {
   applyBatchKeywordToImages,
+  describeKnowledgeUsage,
   getImageProcessQueue,
   getImageTaskSummary,
   getImageUploadQueue,
   isImageTaskRunning,
+  normalizeSeoData,
 } from '../imageWorkflow.ts';
 
 const image = (id: string, status: ProcessingStatus = ProcessingStatus.IDLE): WorkImage => ({
@@ -77,6 +79,73 @@ test('the active image cannot be queued twice while it is already running', () =
   });
 
   assert.deepEqual(queue, []);
+});
+
+test('normalizeSeoData preserves generationContext and keywordUsage', () => {
+  const fallback: SEOData = {
+    filename: 'fallback.webp',
+    title: 'Fallback',
+    alt: 'fallback alt',
+    caption: 'fallback caption',
+    description: 'fallback description',
+  };
+  const generated: SEOData = {
+    filename: 'soap-dispenser.webp',
+    title: 'Commercial Soap Dispenser',
+    alt: 'wall-mounted soap dispenser',
+    caption: 'commercial washroom dispenser',
+    description: 'B2B soap dispenser for facilities',
+    keywordUsage: {
+      usedKeywords: ['commercial soap dispenser'],
+      warnings: [],
+    } as SEOData['keywordUsage'],
+    generationContext: {
+      coreKeyword: 'commercial soap dispenser',
+      keywordCategory: 'soap-dispenser',
+      supportingKeywords: ['wall mounted soap dispenser'],
+      sourceArtifacts: [{ id: 'company-1', kind: 'company', title: 'AOLQ Profile' }],
+      appliedRules: ['imageAlt'],
+      appliedTemplates: [],
+      usedKeywords: ['commercial soap dispenser'],
+      warnings: [],
+    },
+  };
+
+  const normalized = normalizeSeoData(generated, fallback);
+  assert.equal(normalized.filename, 'soap-dispenser.webp');
+  assert.deepEqual(normalized.generationContext?.sourceArtifacts, [
+    { id: 'company-1', kind: 'company', title: 'AOLQ Profile' },
+  ]);
+  assert.ok(normalized.keywordUsage);
+});
+
+test('normalizeSeoData falls back field text without inventing generationContext', () => {
+  const fallback: SEOData = {
+    filename: 'fallback.webp',
+    title: 'Fallback',
+    alt: 'fallback alt',
+    caption: 'fallback caption',
+    description: 'fallback description',
+  };
+  const normalized = normalizeSeoData({
+    filename: '',
+    title: '  ',
+    alt: 'kept alt',
+    caption: '',
+    description: '',
+  }, fallback);
+  assert.equal(normalized.filename, 'fallback.webp');
+  assert.equal(normalized.title, 'Fallback');
+  assert.equal(normalized.alt, 'kept alt');
+  assert.equal(normalized.generationContext, undefined);
+});
+
+test('describeKnowledgeUsage warns when skills are on but no reviewed context exists', () => {
+  assert.equal(describeKnowledgeUsage({ useSkills: false, hasActiveContext: false }).tone, 'off');
+  assert.equal(describeKnowledgeUsage({ useSkills: true, hasActiveContext: true, reviewedArtifactCount: 3 }).tone, 'ready');
+  const empty = describeKnowledgeUsage({ useSkills: true, hasActiveContext: false });
+  assert.equal(empty.tone, 'empty');
+  assert.match(empty.label, /没有已审核资料/);
 });
 
 test('batch keyword fills only selected empty keywords by default', () => {

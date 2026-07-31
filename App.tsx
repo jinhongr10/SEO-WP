@@ -36,11 +36,14 @@ import {
 } from './components/Icons';
 import {
   applyBatchKeywordToImages,
+  describeKnowledgeUsage,
   getImageProcessQueue,
   getImageTaskSummary,
   getImageUploadQueue,
   isImageTaskRunning,
+  normalizeSeoData,
 } from './src/imageWorkflow';
+import { GenerationContextSummary } from './components/GenerationContextSummary';
 import { getNextVisitedPersistentModes, shouldRenderPersistentView } from './src/viewPersistence';
 import { APP_MODE_TABS, AppViewMode, BLOG_WORKSPACE_TABS, BlogWorkspaceMode, MEDIA_WORKSPACE_TABS, MediaWorkspaceMode } from './appTabs';
 import { BLOG_PREVIEW_FAQ_CSS, BLOG_PREVIEW_IMAGE_CSS, BLOG_PREVIEW_LINK_CSS } from './src/blogPreviewStyles';
@@ -2460,14 +2463,6 @@ const App: React.FC = () => {
     );
   };
 
-  const normalizeSeoData = (seo: SEOData | undefined, fallback: SEOData): SEOData => ({
-    filename: seo?.filename?.trim() || fallback.filename,
-    title: seo?.title?.trim() || fallback.title,
-    alt: seo?.alt?.trim() || fallback.alt,
-    caption: seo?.caption?.trim() || fallback.caption,
-    description: seo?.description?.trim() || fallback.description,
-  });
-
   const isLikelyFallbackSeo = (seo: SEOData | undefined, keyword: string) => {
     if (!seo) return true;
     const k = keyword.trim().toLowerCase();
@@ -3242,9 +3237,16 @@ const App: React.FC = () => {
     || activeSiteTemplateRuleCount
   );
   const activeKnowledgeContext = activeSiteKnowledgeContext;
-  const activeKnowledgeContextLabel = activeSiteKnowledgeContext
-    ? `站点资料与规则已加载${activeSiteHasRulePack ? ' · Rule Pack' : ''}${activeSiteTemplateRuleCount ? ' · WooCommerce 规则' : ''}`
-    : '站点资料：无';
+  const activeReviewedKnowledgeArtifactCount = (activeSiteProfile?.knowledgeArtifacts || [])
+    .filter(artifact => artifact.status === 'reviewed' && artifact.markdown.trim()).length;
+  const knowledgeUsage = describeKnowledgeUsage({
+    useSkills,
+    hasActiveContext: Boolean(activeSiteKnowledgeContext),
+    reviewedArtifactCount: activeReviewedKnowledgeArtifactCount,
+  });
+  const activeKnowledgeContextLabel = knowledgeUsage.tone === 'ready'
+    ? `${knowledgeUsage.label}${activeSiteHasRulePack ? ' · Rule Pack' : ''}${activeSiteTemplateRuleCount ? ' · WooCommerce 规则' : ''}`
+    : knowledgeUsage.label;
   const activeTemplatePack = activeSiteProfile?.templatePack || {};
   const activeModeTab = APP_MODE_TABS.find(tab => tab.mode === viewMode) || APP_MODE_TABS[0];
   const activeWorkspaceLabel = viewMode === 'blogWorkspace'
@@ -4169,6 +4171,16 @@ const App: React.FC = () => {
                           {activeImage.status === ProcessingStatus.GENERATING_SEO ? '生成中...' : '用 AI 重写'}
                         </ArcoButton>
                       </div>
+                      {activeImage.seoData?.generationContext ? (
+                        <div className="mb-3" data-testid="image-generation-context">
+                          <GenerationContextSummary value={activeImage.seoData.generationContext} />
+                        </div>
+                      ) : null}
+                      {useSkills && knowledgeUsage.tone === 'empty' ? (
+                        <div className="mb-3 text-xs text-amber-600 dark:text-amber-300" data-testid="image-knowledge-empty-warning">
+                          {activeKnowledgeContextLabel}
+                        </div>
+                      ) : null}
                       <div data-testid="image-seo-fields" className="space-y-3">
                         {(['title', 'alt', 'caption', 'description'] as const).map(field => {
                           const limits = { title: 60, alt: 125, caption: 100, description: 160 };
@@ -4304,7 +4316,14 @@ const App: React.FC = () => {
                     />
                     {skillsLoading && <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />}
                   </div>
-                  {useSkills && activeKnowledgeContext && <span className="text-xs text-green-500 flex items-center gap-1"><IconCheck /> {activeKnowledgeContextLabel}</span>}
+                  {useSkills && knowledgeUsage.tone === 'ready' && (
+                    <span className="text-xs text-green-500 flex items-center gap-1"><IconCheck /> {activeKnowledgeContextLabel}</span>
+                  )}
+                  {useSkills && knowledgeUsage.tone === 'empty' && (
+                    <span className="text-xs text-amber-600 dark:text-amber-300" data-testid="knowledge-usage-empty-warning">
+                      {activeKnowledgeContextLabel}
+                    </span>
+                  )}
                   {selectedCategory && blogState.keywordContext && <span className="text-xs text-green-500 flex items-center gap-1"><IconCheck /> {blogState.keywordFileName}</span>}
                 </div>
               </ArcoCard>

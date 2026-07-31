@@ -1,0 +1,76 @@
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+  height: auto;
+  overflow-x: visible !important;
+}
+
+body {
+  margin: 0;
+  background: var(--system-page);
+}
+
+.layout-stress-page {
+  display: grid;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  gap: 16px;
+  padding: 16px;
+  box-sizing: border-box;
+  color: var(--system-text);
+}
+
+.layout-stress-grid {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.layout-stress-copy {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+
+.layout-stress-copy h1,
+.layout-stress-copy h2,
+.layout-stress-copy p {
+  max-width: 100%;
+  margin: 0;
+}
+
+.layout-stress-badges {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.layout-stress-table {
+  table-layout: fixed;
+}
+
+.layout-stress-table th,
+.layout-stress-table td {
+  vertical-align: top;
+}
+
+.layout-stress-table th:nth-child(1),
+.layout-stress-table td:nth-child(1) { width: 180px; }
+.layout-stress-table th:nth-child(2),
+.layout-stress-table td:nth-child(2) { width: 360px; }
+.layout-stress-table th:nth-child(3),
+.layout-stress-table td:nth-child(3) { width: 360px; }
+.layout-stress-table th:nth-child(4),
+.layout-stress-table td:nth-child(4) { width: 220px; }
+
+@media (max-width: 1180px) {
+  .layout-stress-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

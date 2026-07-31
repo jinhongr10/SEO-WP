@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="独立站 AI">
+  <defs>
+    <linearGradient id="plate" x1="120" y1="96" x2="904" y2="928" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f5f5f7"/>
+      <stop offset="1" stop-color="#d7dbe2"/>
+    </linearGradient>
+    <linearGradient id="ink" x1="248" y1="220" x2="792" y2="808" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2f3338"/>
+      <stop offset="1" stop-color="#050609"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="224" fill="url(#plate)"/>
+  <rect x="134" y="134" width="756" height="756" rx="178" fill="url(#ink)"/>
+  <path d="M515 238l48 134c9 24 28 43 52 52l134 48-134 48c-24 9-43 28-52 52l-48 134-48-134c-9-24-28-43-52-52l-134-48 134-48c24-9 43-28 52-52l48-134z" fill="#f7f8fb"/>
+  <path d="M316 566l25 70c5 13 15 23 28 28l70 25-70 25c-13 5-23 15-28 28l-25 70-25-70c-5-13-15-23-28-28l-70-25 70-25c13-5 23-15 28-28l25-70z" fill="#f7f8fb" opacity=".92"/>
+  <path d="M720 220l21 58c4 11 13 20 24 24l58 21-58 21c-11 4-20 13-24 24l-21 58-21-58c-4-11-13-20-24-24l-58-21 58-21c11-4 20-13 24-24l21-58z" fill="#f7f8fb" opacity=".72"/>
+</svg>

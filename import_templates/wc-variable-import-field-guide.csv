@@ -1,0 +1,24 @@
+﻿字段,父产品怎么填,变体怎么填,备注
+ID,全部留空,全部留空,新增产品必须空；更新已有产品才填 ID
+Type,variable,variation,父产品一行 variable；每个变体一行 variation
+SKU,父 SKU，如 MODEL-002,变体 SKU，如 MODEL-002-BLACK,所有 SKU 必须唯一；Parent 用父 SKU 关联
+Name,产品主标题,变体标题,变体标题建议包含属性值
+Published,-1 测试草稿；正式发布改 1,-1 测试草稿；正式发布改 1,你批量导入建议先用草稿
+Short description,填写规格表或短介绍,留空,来自你原产品的规格表字段
+Description,填写详情页 HTML 或正文,留空,来自你原产品的长描述字段
+Regular price,通常留空,要购买就填价格,变量产品真正售卖价格通常填在变体行
+Categories,父产品填写,留空,"例如 Product Category > Product Subcategory, Product Category"
+Tags,父产品填写,留空,英文逗号分隔
+Images,主图 + 相册图 URL,当前变体图 URL,父产品第一张是主图；变体行放对应颜色图片
+Parent,留空,填写父 SKU，如 MODEL-002,这是变体关联父产品的关键字段
+Brands,,留空,沿用你现有产品品牌字段
+Meta: _aioseo_title,SEO 标题,留空,父产品填写即可
+Meta: _aioseo_description,SEO 描述,留空,建议 150-160 个英文字符左右
+Meta: short_description,一句话短介绍,留空,你原导出里已有，用于主题/自定义展示
+Meta: product_extra_info——seo,一句话短介绍,留空,沿用你现有自定义 SEO 字段
+Attribute 1 name,属性名，如 Color,同父产品，如 Color,颜色变体用 Color
+Attribute 1 value(s),"所有属性值，如 Black, White",当前属性值，如 Black,父产品写全部；变体行只写当前值
+Attribute 1 default,默认值，如 Black,留空,父产品才需要
+Attribute 1 visible,1,1,前台显示属性
+Attribute 1 global,0,0,0 表示本产品局部属性，最方便
+Attribute 2 name/value(s),"第二属性，如 Plug: US, EU",当前第二属性值,没有第二属性就全部留空

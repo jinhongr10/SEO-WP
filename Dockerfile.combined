@@ -1,0 +1,131 @@
+# ===== Stage 1: Build Frontend =====
+FROM node:20-bookworm-slim AS frontend-build
+WORKDIR /app
+
+# Install deps first for better cache
+COPY package.json package-lock.json* ./
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+
+# Copy source and build
+COPY *.tsx *.ts index.html tsconfig.json vite.config.ts ./
+COPY components/ ./components/
+COPY services/ ./services/
+COPY api/ ./api/
+COPY src/ ./src/
+RUN npm run build:web
+
+# ===== Stage 2: Build Node CLI =====
+FROM frontend-build AS cli-build
+COPY tsconfig.cli.json ./
+RUN npm run build:cli
+
+# ===== Stage 3: Install Node CLI Runtime Dependencies =====
+FROM node:20-bookworm-slim AS cli-runtime-deps
+WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi \
+    && npm cache clean --force
+
+# ===== Stage 4: Build Backend Dependencies =====
+FROM python:3.11-slim-bookworm AS backend-build
+WORKDIR /app
+COPY backend/requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# ===== Stage 5: Final Image with Nginx + Python =====
+FROM python:3.11-slim-bookworm AS runner
+
+# Install Nginx (with retry for network issues)
+RUN set -eux; \
+    ok=0; \
+    for i in 1 2 3 4 5 6 7 8; do \
+        rm -rf /var/lib/apt/lists/*; \
+        if apt-get update -o Acquire::Retries=5 \
+            && { apt-get install -y --no-install-recommends -o Acquire::Retries=5 nginx \
+                || apt-get install -f -y --no-install-recommends -o Acquire::Retries=5 --fix-missing; } \
+            && nginx -v; then \
+            ok=1; \
+            break; \
+        fi; \
+        apt-get clean; \
+        sleep 5; \
+    done; \
+    if [ "$ok" -ne 1 ]; then \
+        echo "Failed to install nginx after retries" >&2; \
+        exit 1; \
+    fi; \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy Python packages from backend-build
+COPY --from=backend-build /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=backend-build /usr/local/bin /usr/local/bin
+
+# Copy only the Node runtime, compiled CLI, and production dependencies used by background tasks.
+COPY --from=cli-runtime-deps /usr/local/bin/node /usr/local/bin/node
+WORKDIR /app
+COPY package.json ./
+COPY --from=cli-runtime-deps /app/node_modules ./node_modules
+COPY --from=cli-build /app/dist-cli ./dist-cli
+COPY ["skills copy", "/app/skills copy"]
+COPY wordpress-plugins/ ./wordpress-plugins/
+
+# Copy backend code
+WORKDIR /app/backend
+COPY backend/*.py ./
+
+# Copy frontend build to nginx
+COPY --from=frontend-build /app/dist /usr/share/nginx/html
+
+# Copy nginx config
+COPY nginx.conf /etc/nginx/sites-available/default
+
+# Lightweight process supervisor for nginx + FastAPI.
+COPY <<EOF /app/start.py
+import os
+import signal
+import subprocess
+import sys
+import time
+
+env = os.environ.copy()
+env["PYTHONUNBUFFERED"] = "1"
+
+backend = subprocess.Popen(
+    ["/usr/local/bin/uvicorn", "main:app", "--host", "0.0.0.0", "--port", "3004"],
+    cwd="/app/backend",
+    env=env,
+)
+nginx = subprocess.Popen(["/usr/sbin/nginx", "-g", "daemon off;"])
+children = [backend, nginx]
+
+
+def stop(signum=None, frame=None):
+    for child in children:
+        if child.poll() is None:
+            child.terminate()
+    deadline = time.time() + 10
+    while time.time() < deadline and any(child.poll() is None for child in children):
+        time.sleep(0.1)
+    for child in children:
+        if child.poll() is None:
+            child.kill()
+
+
+signal.signal(signal.SIGTERM, stop)
+signal.signal(signal.SIGINT, stop)
+
+try:
+    while True:
+        for child in children:
+            code = child.poll()
+            if code is not None:
+                stop()
+                sys.exit(code)
+        time.sleep(0.5)
+finally:
+    stop()
+EOF
+
+EXPOSE 80
+
+CMD ["python", "/app/start.py"]

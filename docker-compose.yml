@@ -1,0 +1,58 @@
+services:
+  seo-wp-sync:
+    build:
+      context: .
+      dockerfile: Dockerfile.combined
+    image: seo-wp-sync:local
+    container_name: seo-wp-sync
+    ports:
+      - "${APP_PORT:-8080}:80"
+    env_file:
+      - .env
+      - .env.local
+    environment:
+      # Vertex AI is the default Docker test path. Either:
+      # 1) use local gcloud ADC mounted below, or
+      # 2) put a service-account JSON at ./keys/vertex-sa.json and set
+      #    GOOGLE_APPLICATION_CREDENTIALS=/app/keys/vertex-sa.json in .env.
+      GOOGLE_GENAI_USE_VERTEXAI: "${GOOGLE_GENAI_USE_VERTEXAI:-true}"
+      GOOGLE_CLOUD_PROJECT: "${GOOGLE_CLOUD_PROJECT:-}"
+      GOOGLE_PROJECT_ID: "${GOOGLE_PROJECT_ID:-${GOOGLE_CLOUD_PROJECT:-}}"
+      GOOGLE_CLOUD_LOCATION: "${GOOGLE_CLOUD_LOCATION:-global}"
+      SETTINGS_FILE: /app/data/settings.json
+      KEYWORDS_FILE: /app/data/keywords.json
+      PRODUCT_TEMPLATE_FILE: /app/data/product_template.txt
+      DB_PATH: /app/state/media-optimizer.db
+      CACHE_ORIGINAL_DIR: /app/cache/original
+      CACHE_OPTIMIZED_DIR: /app/cache/optimized
+      BACKUP_REMOTE_DIR: /app/backup/remote
+      HTTPS_PROXY: ""
+      HTTP_PROXY: ""
+      ALL_PROXY: ""
+      https_proxy: ""
+      http_proxy: ""
+      all_proxy: ""
+      NO_PROXY: "127.0.0.1,localhost"
+      no_proxy: "127.0.0.1,localhost"
+    volumes:
+      - ./keys:/app/keys:ro
+      - ./backend/main.py:/app/backend/main.py:ro
+      - ./backend/page_planner.py:/app/backend/page_planner.py:ro
+      - ${HOME}/.config/gcloud:/root/.config/gcloud:ro
+      - ./data:/app/data
+      - ./state:/app/state
+      - ./cache:/app/cache
+      - ./backup:/app/backup
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1/api/ai/status', timeout=5).read()",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped

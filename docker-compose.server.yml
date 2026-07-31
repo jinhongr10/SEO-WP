@@ -1,0 +1,39 @@
+services:
+  seo-wp-sync:
+    image: seo-wp-sync:amd64
+    container_name: seo-wp-sync
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3000}:80"
+    env_file:
+      - .env
+    environment:
+      SETTINGS_FILE: /app/data/settings.json
+      KEYWORDS_FILE: /app/data/keywords.json
+      PRODUCT_TEMPLATE_FILE: /app/data/product_template.txt
+      DB_PATH: /app/data/media_state.db
+      CACHE_ORIGINAL_DIR: /app/cache/original
+      CACHE_OPTIMIZED_DIR: /app/cache/optimized
+      BACKUP_REMOTE_DIR: /app/backup/remote
+      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-/app/keys/vertex-sa.json}
+      HTTPS_PROXY: ${CONTAINER_HTTPS_PROXY:-}
+      HTTP_PROXY: ${CONTAINER_HTTP_PROXY:-}
+      ALL_PROXY: ${CONTAINER_ALL_PROXY:-}
+      https_proxy: ${CONTAINER_HTTPS_PROXY:-}
+      http_proxy: ${CONTAINER_HTTP_PROXY:-}
+      all_proxy: ${CONTAINER_ALL_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-127.0.0.1,localhost}
+      no_proxy: ${no_proxy:-127.0.0.1,localhost}
+    volumes:
+      - ./keys:/app/keys:ro
+      - seo-wp-sync-data:/app/data
+      - seo-wp-sync-cache:/app/cache
+      - seo-wp-sync-backup:/app/backup
+
+volumes:
+  seo-wp-sync-data:
+    name: seo-wp-sync-data
+  seo-wp-sync-cache:
+    name: seo-wp-sync-cache
+  seo-wp-sync-backup:
+    name: seo-wp-sync-backup

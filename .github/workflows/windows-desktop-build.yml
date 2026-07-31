@@ -1,0 +1,160 @@
+name: Windows Desktop Release Gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+concurrency:
+  group: windows-desktop-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+
+jobs:
+  windows-release-gate:
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Check out a clean repository
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Remove generated desktop inputs
+        shell: powershell
+        run: |
+          $GeneratedPaths = @(
+            "build\pyinstaller-windows",
+            "dist",
+            "dist-cli",
+            "desktop\resources\backend",
+            "desktop\resources\node-runtime",
+            "desktop\resources\node_modules",
+            "release",
+            "test-results"
+          )
+          foreach ($GeneratedPath in $GeneratedPaths) {
+            if (Test-Path $GeneratedPath) {
+              Remove-Item -Recurse -Force $GeneratedPath
+            }
+          }
+
+      - name: Install frontend and CLI dependencies from lockfile
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install chromium
+
+      - name: Install backend build dependencies
+        shell: powershell
+        run: |
+          python -m venv .venv
+          .\.venv\Scripts\python.exe -m pip install --upgrade pip
+          .\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt pyinstaller
+
+      - name: Run TypeScript, frontend, backend, tooling, and UI tests
+        shell: powershell
+        run: |
+          npm run test:neutrality
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run typecheck
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:frontend
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:backend
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:tooling
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run verify:ui
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Require Windows signing Secrets
+        shell: powershell
+        env:
+          WINDOWS_CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+          WINDOWS_CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CSC_LINK)) {
+            throw "WINDOWS_CSC_LINK is not configured for the Windows release environment."
+          }
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CSC_KEY_PASSWORD)) {
+            throw "WINDOWS_CSC_KEY_PASSWORD is not configured for the Windows release environment."
+          }
+          Write-Host "Windows signing Secrets are configured."
+
+      - name: Rebuild Renderer, Python backend, Node runtime, production modules, and NSIS installer
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        shell: powershell
+        env:
+          CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+          FORCE_BACKEND: "true"
+          FORCE_NODE_RUNTIME: "true"
+        run: npm run build:desktop:windows
+
+      - name: Rebuild signed Windows release assets
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.SEOWP }}
+          CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+          FORCE_BACKEND: "true"
+          FORCE_NODE_RUNTIME: "true"
+        run: npm run build:desktop:windows:release
+
+      - name: Scan packaged Windows files
+        run: npm run test:artifact:windows
+
+      - name: Test signed installer and real packaged sidecars
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-windows-installer.ps1
+
+      - name: Upload redacted Windows release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release-evidence-${{ github.run_id }}
+          path: |
+            test-results/windows-installer
+            test-results/windows-installer-diagnostics.zip
+            playwright-report
+            test-results/ui-layout
+            test-results/app-interactions
+            test-results/verification
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload verified signed Windows assets
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seo-wp-sync-windows-signed-${{ github.run_id }}
+          path: |
+            release/desktop/seo-wp-sync-setup-*.exe
+            release/desktop/seo-wp-sync-setup-*.exe.blockmap
+            release/desktop/latest.yml
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish release only after the Windows release gate passes
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.SEOWP }}
+        run: node scripts/release/finalize-release.mjs --platform windows

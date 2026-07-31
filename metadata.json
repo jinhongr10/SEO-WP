@@ -1,0 +1,5 @@
+{
+  "name": "独立站 AI",
+  "description": "A professional image processing workbench that resizes, converts to WebP, generates AI-powered SEO metadata using Gemini, and uploads directly to WordPress.",
+  "requestFramePermissions": []
+}

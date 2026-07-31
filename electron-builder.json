@@ -1,0 +1,156 @@
+{
+  "appId": "com.seowpsync.desktop",
+  "productName": "独立站 AI",
+  "artifactName": "seo-wp-sync-setup-${version}.${ext}",
+  "directories": {
+    "output": "release/desktop"
+  },
+  "electronDist": "node_modules/electron/dist",
+  "npmRebuild": false,
+  "files": [
+    "dist/**",
+    "desktop/**",
+    "package.json",
+    "!desktop/resources/**",
+    "!node_modules/**",
+    "!node_modules/.cache/**",
+    "!.env",
+    "!.env.*",
+    "!**/.env",
+    "!**/.env.*",
+    "!.env.local",
+    "!.env.server",
+    "!keys/**",
+    "!**/keys/**",
+    "!data/**",
+    "!**/data/**",
+    "!state/**",
+    "!**/state/**",
+    "!backup/**",
+    "!**/backup/**",
+    "!cache/**",
+    "!**/cache/**",
+    "!logs/**",
+    "!**/logs/**",
+    "!*.log",
+    "!**/*.log",
+    "!*.tar",
+    "!*.tar.gz",
+    "!seo-wp-sync-amd64.tar"
+  ],
+  "extraResources": [
+    {
+      "from": "desktop/resources",
+      "to": ".",
+      "filter": [
+        "**/*",
+        "!.env",
+        "!.env.*",
+        "!**/.env",
+        "!**/.env.*",
+        "!keys/**",
+        "!**/keys/**",
+        "!data/**",
+        "!**/data/**",
+        "!state/**",
+        "!**/state/**",
+        "!backup/**",
+        "!**/backup/**",
+        "!cache/**",
+        "!**/cache/**",
+        "!logs/**",
+        "!**/logs/**",
+        "!*.log",
+        "!**/*.log",
+        "!*.sqlite",
+        "!**/*.sqlite",
+        "!*.db",
+        "!**/*.db",
+        "!*.db-shm",
+        "!**/*.db-shm",
+        "!*.db-wal",
+        "!**/*.db-wal"
+      ]
+    },
+    {
+      "from": "dist-cli",
+      "to": "dist-cli",
+      "filter": [
+        "**/*",
+        "!**/.env",
+        "!**/*.log",
+        "!**/*.sqlite",
+        "!**/*.db",
+        "!**/*.db-shm",
+        "!**/*.db-wal"
+      ]
+    },
+    {
+      "from": "import_templates",
+      "to": "import_templates",
+      "filter": [
+        "**/*"
+      ]
+    }
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "x64"
+        ]
+      }
+    ],
+    "requestedExecutionLevel": "asInvoker",
+    "verifyUpdateCodeSignature": true,
+    "publisherName": "独立站 AI"
+  },
+  "mac": {
+    "target": [
+      {
+        "target": "dmg",
+        "arch": [
+          "arm64"
+        ]
+      },
+      {
+        "target": "zip",
+        "arch": [
+          "arm64"
+        ]
+      }
+    ],
+    "category": "public.app-category.productivity",
+    "icon": "build/icon.icns",
+    "hardenedRuntime": false,
+    "gatekeeperAssess": false,
+    "identity": null
+  },
+  "dmg": {
+    "title": "${productName} ${version}",
+    "artifactName": "${productName}-${version}-${arch}.${ext}",
+    "contents": [
+      {
+        "x": 130,
+        "y": 220
+      },
+      {
+        "x": 410,
+        "y": 220,
+        "type": "link",
+        "path": "/Applications"
+      }
+    ]
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "独立站 AI",
+    "uninstallDisplayName": "独立站 AI"
+  },
+  "asar": true
+}

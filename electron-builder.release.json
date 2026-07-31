@@ -1,0 +1,13 @@
+{
+  "extends": "./electron-builder.json",
+  "publish": [
+    {
+      "provider": "github",
+      "owner": "jinhongr10",
+      "repo": "SEO-WP",
+      "private": false,
+      "releaseType": "draft",
+      "vPrefixedTagName": true
+    }
+  ]
+}

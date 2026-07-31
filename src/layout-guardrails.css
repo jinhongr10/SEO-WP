@@ -1,0 +1,382 @@
+/* Enforced layout contracts. Keep this file loaded after styles.css. */
+
+.ui-overflow-text {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.ui-overflow-text--wrap {
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+.ui-overflow-text--break-anywhere {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.ui-overflow-text--truncate {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--ui-overflow-rows, 1);
+  line-clamp: var(--ui-overflow-rows, 1);
+  overflow-wrap: anywhere;
+}
+
+.ui-action-group {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--ds-space-2, 8px);
+}
+
+.ui-action-group > * {
+  min-width: min(100%, var(--ui-action-min-width, 0px));
+  max-width: 100%;
+  flex-shrink: 0;
+}
+
+.ui-action-group :is(.arco-btn, button) {
+  white-space: nowrap;
+}
+
+.ui-prompt-stack {
+  display: grid;
+  min-width: 0;
+  gap: var(--ds-space-3, 12px);
+}
+
+.ui-tabs-list .arco-tabs-header-title + .arco-tabs-header-title {
+  margin-inline-start: var(--ds-space-1, 4px);
+}
+
+.ui-toolbar {
+  container-type: inline-size;
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.ui-toolbar__start {
+  min-width: 0;
+  max-width: 100%;
+  flex: 1 1 260px;
+  overflow-wrap: anywhere;
+}
+
+.ui-toolbar__actions {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--ds-space-2, 8px);
+}
+
+.ui-toolbar__actions > .ui-action-group {
+  flex: 1 1 auto;
+}
+
+.ui-toolbar__actions > .skill-faq-header-actions.ui-action-group {
+  width: max-content;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  align-items: stretch;
+}
+
+.skill-faq-header-actions .arco-btn {
+  height: auto;
+  min-height: var(--ds-control-height, 32px);
+  padding-block: var(--ds-space-2, 8px);
+  line-height: 1.2;
+}
+
+.page-planner-section-header.ui-toolbar,
+.blog-format-hero-header.ui-toolbar {
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+@container (max-width: 680px) {
+  .ui-toolbar__start,
+  .ui-toolbar__actions,
+  .ui-toolbar__actions > .ui-action-group {
+    width: 100%;
+    flex-basis: 100%;
+  }
+
+  .ui-toolbar__actions,
+  .ui-toolbar__actions > .ui-action-group {
+    justify-content: flex-start;
+  }
+}
+
+.ui-panel__header {
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+.ui-panel__header > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.ui-panel__header-actions {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--ds-space-2, 8px);
+}
+
+.ui-panel__title,
+.ui-panel__description,
+.ui-field__label,
+.ui-field__hint {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.ui-table-shell {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-gutter: stable;
+  overscroll-behavior-inline: contain;
+}
+
+.ui-table-shell__content {
+  width: 100%;
+  min-width: var(--ui-table-min-width, 100%);
+}
+
+.ui-table-shell__content > :is(table, .arco-table) {
+  min-width: 100%;
+}
+
+.ui-badge,
+.ui-status-pill {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.ui-badge .arco-tag-content,
+.ui-status-pill .arco-tag-content {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-tabs-list,
+.ui-tabs-list.arco-tabs,
+.ui-tabs-list .arco-tabs-header,
+.ui-tabs-list .arco-tabs-header-nav,
+.ui-tabs-list .arco-tabs-header-scroll,
+.ui-tabs-list .arco-tabs-header-wrapper {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.ui-tabs-list .arco-tabs-header-scroll {
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+}
+
+.ui-navigation-card.arco-btn {
+  display: flex;
+  width: 100%;
+  height: auto;
+  min-height: 58px;
+  align-self: start;
+  align-items: stretch;
+  justify-content: stretch;
+  max-width: 100%;
+  white-space: normal;
+}
+
+.ui-navigation-card.arco-btn > .arco-btn-content,
+.ui-navigation-card.arco-btn .arco-btn-content {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  line-height: normal;
+  text-align: left;
+  white-space: normal;
+}
+
+.ui-navigation-card__content {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--ds-space-3, 12px);
+  align-items: start;
+}
+
+.ui-navigation-card__copy {
+  display: grid;
+  min-width: 0;
+  gap: var(--ds-space-1, 4px);
+}
+
+.ui-navigation-card__title,
+.ui-navigation-card__description {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.ui-navigation-card__count {
+  display: inline-flex;
+  min-width: 26px;
+  min-height: 24px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+}
+
+.ui-tabs-list .arco-tabs-header-title,
+.ui-tab__title {
+  min-width: 0;
+  max-width: min(240px, 32vw);
+}
+
+.ui-tab__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-layout-contract="toolbar"] :is(h1, h2, h3, p, label),
+[data-layout-contract="action-group"] :is(span, strong),
+[data-layout-contract="table-shell"] :is(td, th) {
+  min-width: 0;
+}
+
+.brand-starter,
+.brand-starter__header,
+.brand-starter__header > *,
+.brand-starter__workspace,
+.brand-starter__controls,
+.brand-editor-shell,
+.brand-editor-main,
+.brand-editor-pane,
+.brand-editor-pane > *,
+.brand-reference-color-editor,
+.brand-reference-color-editor > *,
+.brand-reference-pick-field > div,
+.brand-system-color-trigger,
+.brand-source-compact,
+.brand-source-candidates,
+.brand-source-candidate-strip,
+.brand-starter__preview,
+.brand-preview-shell,
+.brand-preview-shell__bar,
+.brand-preview-mode-tabs,
+.brand-preview-shell__controls,
+.brand-preview-scroll {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.brand-token-anchor > .brand-token-tooltip {
+  display: none;
+}
+
+.brand-token-anchor:hover > .brand-token-tooltip {
+  display: grid;
+}
+
+.brand-reference-footer__brand > span {
+  grid-column: 1 / -1;
+}
+
+@container (max-width: 900px) {
+  .brand-reference-color-editor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .brand-reference-nav {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .brand-reference-links {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    flex-wrap: wrap;
+  }
+
+  .brand-reference-final-cta {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+  }
+}
+
+/* Arco positions the numeric badge slightly outside its inline wrapper. */
+.codex-message-button .arco-badge {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.codex-message-button .arco-badge-number {
+  right: 10px;
+}
+
+/* Match Arco's 24px hover target so its static control icons stay in-bounds. */
+[data-testid="persistent-view-blogWorkspace"] :is(.arco-checkbox-icon-hover, .arco-radio-icon-hover) {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  flex: 0 0 24px;
+  align-items: center;
+  justify-content: center;
+}
+
+.control-page:has([data-testid="command-center-seo-audit"]) .arco-checkbox-icon-hover {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  flex: 0 0 24px;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 1180px) {
+  [data-layout-contract="seo-gap-filters"] {
+    min-width: 0;
+    max-width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  [data-layout-contract="seo-gap-filters"] > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+/* Keep Arco's decorative radio-button layer within the Blog AI control. */
+[data-testid="blog-subtab-panel-blogAi"] .arco-radio-button::after {
+  inset-inline: 0;
+}

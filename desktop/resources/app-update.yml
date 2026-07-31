@@ -1,0 +1,5 @@
+provider: github
+owner: jinhongr10
+repo: SEO-WP
+private: false
+updaterCacheDirName: seo-wp-sync-updater

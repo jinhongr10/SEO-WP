@@ -1,0 +1,30 @@
+后台区域,后台字段,CSV字段,父产品填写,变体填写,说明
+顶部标题,Product title,Name,MODEL-001 Product Name,变体标题写成：型号 + 属性 + 产品名,可导入
+顶部链接,Permalink,无稳定 CSV 字段,留空，WordPress 自动生成,留空,如需批量控制 slug，需要再导出含 slug 的样品确认字段
+Product description,产品长描述,Description,"<h2>Product Overview</h2><p>Replace this with your own product description, features, materials, and customer use cases.</p>",留空,父产品填写，支持 HTML
+Product Extra Info——SEO,Short Description,Meta: product_extra_info——seo,"MODEL-001 product name.",留空,自定义 SEO 短描述框
+Product short description,产品短描述,Short description,"<table><tbody><tr><td>Model</td><td>MODEL-001</td></tr><tr><td>Product</td><td>Product Name</td></tr><tr><td>Application</td><td>Your customer use case</td></tr><tr><td>Option</td><td>Option A, Option B</td></tr></tbody></table>",留空,WooCommerce 短描述，支持 HTML 表格
+AIOSEO General,Product Title,Meta: _aioseo_title,MODEL-001 Product Name,留空,建议控制在 60 字符左右
+AIOSEO General,Meta Description,Meta: _aioseo_description,"MODEL-001 product name.",留空,建议 150-160 字符左右
+AIOSEO Social,Facebook Title,Meta: _aioseo_og_title,MODEL-001 Product Name,留空,不填通常会继承 SEO title
+AIOSEO Social,Facebook Description,Meta: _aioseo_og_description,"MODEL-001 product name.",留空,不填通常会继承 SEO description
+AIOSEO Social,X/Twitter Title,Meta: _aioseo_twitter_title,MODEL-001 Product Name,留空,不填通常会继承 SEO title
+AIOSEO Social,X/Twitter Description,Meta: _aioseo_twitter_description,"MODEL-001 product name.",留空,不填通常会继承 SEO description
+Product data,Product type,Type,variable,variation,父产品一行 variable，每个变体一行 variation
+Product data / Inventory,SKU,SKU,MODEL-001,MODEL-001-OPTION-A / MODEL-001-OPTION-B,所有 SKU 必须唯一
+Product data / Inventory,"GTIN, UPC, EAN, or ISBN","GTIN, UPC, EAN, or ISBN",有就填，没有留空,通常留空,库存页 GTIN 字段
+Product data / Inventory,Quantity,Stock,父级库存可留空,变体库存可留空或填数量,如果实际销售，建议库存放在变体行
+Product data / Inventory,Allow backorders,Backorders allowed?,0,0,0=Do not allow
+Product data / Inventory,Sold individually,Sold individually?,0,0,0=不限制每单数量
+Product data / Attributes,Attributes,Attribute 1 name / value(s),"Option = Option A, Option B",Option = 当前选项,父产品填全部属性值；变体只填自己的值
+Product data / Variations,Variations,Parent,留空,MODEL-001,变体行用 Parent 关联父 SKU
+Astra Settings,Container Layout,Meta: ast-site-content-layout,full-width-container,留空,对应 Full Width
+Astra Settings,Container Style,Meta: site-content-style,default,留空,对应 Customizer Setting
+Astra Settings,Sidebar Layout,Meta: site-sidebar-layout,no-sidebar,留空,对应 No Sidebar
+Astra Settings,Sidebar Style,Meta: site-sidebar-style,default,留空,对应 Customizer Setting
+Astra Settings,Transparent Header,Meta: theme-transparent-header-meta,default,留空,对应 Customizer Setting
+右侧栏,Product tags,Tags,"",留空,英文逗号分隔
+右侧栏,Brands,Brands,,留空,对应 Brands 勾选
+右侧栏,Product image / Product gallery,Images,第一张主图 URL，后面相册 URL,当前变体图 URL,图片必须是可公开访问的 URL
+右侧栏,Product categories,Categories,Product Category > Product Subcategory,留空,用 > 表示层级；多个分类用英文逗号
+右侧栏,SELECT PRIMARY CATEGORY,暂不放入真实导入 CSV,先把主分类放在 Categories 第一个,留空,需要再导出一个已设置主分类的产品，确认它的 meta key 后才能稳定批量导入

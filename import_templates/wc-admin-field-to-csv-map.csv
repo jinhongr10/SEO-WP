@@ -1,0 +1,31 @@
+﻿后台区域,后台字段,CSV 字段,父产品填写,变体填写,说明
+顶部标题,Product title,Name,父产品填主标题,变体填带属性的标题,截图顶部大标题
+顶部链接,Permalink,不建议批量填；WordPress 自动生成,可不填,可不填,如必须自定义 slug，需要另行确认导出是否支持 Slug 字段
+Product description,产品长描述,Description,填写 HTML/正文,留空,详情页主体内容
+Product Extra Info——SEO,Short Description,Meta: product_extra_info——seo,填写一句 SEO/卖点短句,留空,你截图里的自定义 SEO 短描述框
+Product short description,产品短描述,Short description,填写规格表/摘要，可用 HTML,留空,WooCommerce 短描述
+AIOSEO General,Product Title,Meta: _aioseo_title,填写 SEO Title,留空,建议不超过约 60 字符
+AIOSEO General,Meta Description,Meta: _aioseo_description,填写 SEO Description,留空,建议约 150-160 字符
+AIOSEO Social Facebook,Facebook Title,Meta: _aioseo_og_title,填写 Facebook 标题或留空继承,留空,对应 Social > Facebook Title
+AIOSEO Social Facebook,Facebook Description,Meta: _aioseo_og_description,填写 Facebook 描述或留空继承,留空,对应 Social > Facebook Description
+AIOSEO Social X/Twitter,Twitter Title,Meta: _aioseo_twitter_title,填写 X/Twitter 标题或留空继承,留空,对应 Social > X Title
+AIOSEO Social X/Twitter,Twitter Description,Meta: _aioseo_twitter_description,填写 X/Twitter 描述或留空继承,留空,对应 Social > X Description
+Product data,Product type,Type,variable,variation,父产品 variable；变体 variation
+Product data / Inventory,SKU,SKU,父 SKU,变体 SKU,必须唯一
+Product data / Inventory,"GTIN, UPC, EAN, or ISBN","GTIN, UPC, EAN, or ISBN",有就填,通常留空,截图库存页里的 GTIN 字段
+Product data / Inventory,Stock management + Quantity,Stock,父级库存可留空或填数量,变体库存可留空或填数量,填数量通常表示启用库存管理
+Product data / Inventory,Allow backorders,Backorders allowed?,0/1,0/1,0=不允许
+Product data / Inventory,Sold individually,Sold individually?,0/1,0/1,0=不限制
+Product data / Shipping,Weight/Dimensions,Weight/Length/Width/Height,需要物流就填,通常继承或单独填,单位按你 WooCommerce 设置/导出字段
+Product data / Attributes,Attributes,Attribute 1/2/3 name/value(s),填全部属性值,填当前属性值,变体产品最关键字段
+Product data / Variations,Variations,Parent,父产品留空,填父 SKU,关联父子产品
+Astra Settings,Container Layout,Meta: ast-site-content-layout,full-width-container,留空,对应 Full Width
+Astra Settings,Container Style,Meta: site-content-style,default,留空,对应 Customizer Setting
+Astra Settings,Sidebar Layout,Meta: site-sidebar-layout,no-sidebar,留空,对应 No Sidebar
+Astra Settings,Sidebar Style,Meta: site-sidebar-style,default,留空,对应 Customizer Setting
+Astra Settings,Transparent Header,Meta: theme-transparent-header-meta,default,留空,对应 Customizer Setting
+右侧 Product tags,Tags,Tags,逗号分隔填写,留空,截图里的标签列表
+右侧 Brands,Brands,Brands, 或其他品牌,留空,截图里的 Brands 勾选项
+右侧 Product image/gallery,主图和相册,Images,第一个 URL=主图，后面=相册,当前变体图 URL,必须是可访问图片 URL
+右侧 Product categories,分类,Categories,用 > 表示层级，逗号分隔多个分类,留空,例如 Product Category > Product Subcategory
+右侧 Primary category,主分类,Woo 标准 CSV 不稳定/未在你导出字段里出现,建议先把主要分类放 Categories 第一个,留空,如要批量设置 primary category，需要再导出含该 meta 的样品确认字段

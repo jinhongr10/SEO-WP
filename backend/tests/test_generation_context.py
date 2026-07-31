@@ -71,6 +71,35 @@ class GenerationContextTests(unittest.TestCase):
         self.assertNotIn("Sample Item", result["keywordContext"])
         self.assertNotIn("custom water bottle enterprise", result["keywordContext"])
 
+    def test_includes_approved_faqs_in_company_context(self):
+        profile = {
+            **self.profile,
+            "faqs": [
+                {
+                    "id": "faq-1",
+                    "question": "What is the MOQ?",
+                    "answer": "MOQ is 500 units for standard models.",
+                    "status": "approved",
+                },
+                {
+                    "id": "faq-draft",
+                    "question": "Secret draft?",
+                    "answer": "Should not appear",
+                    "status": "draft",
+                },
+            ],
+        }
+        result = resolve_generation_context(
+            profile,
+            task_type="blog",
+            core_keyword="soap dispenser",
+            keyword_category="",
+            target_text="blog about commercial soap dispenser",
+        )
+        self.assertIn("What is the MOQ?", result["companyContext"])
+        self.assertNotIn("Should not appear", result["companyContext"])
+        self.assertTrue(any(item.get("kind") == "faq" for item in result["summary"]["sourceArtifacts"]))
+
     def test_allows_empty_core_keyword_and_empty_keyword_category(self):
         result = resolve_generation_context(
             self.profile,

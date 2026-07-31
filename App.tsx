@@ -2857,32 +2857,36 @@ const App: React.FC = () => {
     requireApiKey(async () => {
     const apiKey = getApiKey();
     const ctx = useSkills ? activeKnowledgeContext : undefined;
+    const siteOptions = {
+      siteId: activeSiteId || '',
+      keywordCategory: selectedCategory || '',
+    };
     const setStatus = (status: BlogStatus, extra?: Partial<BlogState>) => setBlogState(prev => ({ ...prev, status, errorMessage: undefined, ...extra }));
     setBlogOptimizer(null);
     setBlogPublishNotice(null);
     try {
       if (action === 'outline') {
         setStatus(BlogStatus.GENERATING_OUTLINE);
-        const outline = await generateBlogOutline(apiKey, blogState.topic, blogState.keywords, blogState.referenceContent, blogState.keywordContext, ctx);
+        const outline = await generateBlogOutline(apiKey, blogState.topic, blogState.keywords, blogState.referenceContent, blogState.keywordContext, ctx, siteOptions);
         setStatus(BlogStatus.OUTLINE_READY, { outline });
       } else if (action === 'post') {
         setStatus(BlogStatus.GENERATING_POST);
-        const content = await generateFullPost(apiKey, blogState.topic, blogState.outline, blogState.referenceContent, blogState.keywordContext, ctx);
+        const content = await generateFullPost(apiKey, blogState.topic, blogState.outline, blogState.referenceContent, blogState.keywordContext, ctx, siteOptions);
         setStatus(BlogStatus.COMPLETED, { content });
       } else if (action === 'refine') {
         if (!blogState.refineInstruction.trim()) { await showAppAlert("请输入修改意见", { title: '缺少修改意见' }); return; }
         setStatus(BlogStatus.REFINING);
-        const content = await refineBlogPost(apiKey, blogState.content, blogState.refineInstruction, ctx);
+        const content = await refineBlogPost(apiKey, blogState.content, blogState.refineInstruction, ctx, siteOptions);
         setStatus(BlogStatus.COMPLETED, { content, refineInstruction: '' });
       } else if (action === 'rewrite') {
         if (!blogState.rewriteSource?.trim()) { await showAppAlert("请先提供需要重写的原文内容", { title: '缺少原文内容' }); return; }
         setStatus(BlogStatus.REWRITING);
-        const content = await rewriteBlogPost(apiKey, blogState.rewriteSource, blogState.rewriteInstruction, blogState.keywords, blogState.keywordContext, ctx);
+        const content = await rewriteBlogPost(apiKey, blogState.rewriteSource, blogState.rewriteInstruction, blogState.keywords, blogState.keywordContext, ctx, siteOptions);
         setStatus(BlogStatus.COMPLETED, { content });
       } else if (action === 'seo') {
         if (!blogState.content.trim()) return;
         setStatus(BlogStatus.GENERATING_SEO);
-        const seo = await generateBlogSEO(apiKey, blogState.content, blogState.keywordContext, ctx);
+        const seo = await generateBlogSEO(apiKey, blogState.content, blogState.keywordContext, ctx, siteOptions);
         setStatus(BlogStatus.COMPLETED, { seo });
       }
     } catch (e: unknown) { setBlogState(prev => ({ ...prev, status: BlogStatus.ERROR, errorMessage: getUserFacingErrorMessage(e) })); }

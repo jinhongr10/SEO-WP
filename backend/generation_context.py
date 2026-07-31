@@ -200,6 +200,22 @@ def resolve_generation_context(
         f"## {_text(artifact.get('title'))}\n{str(artifact.get('markdown') or '').strip()}"
         for artifact in factual_artifacts
     ]
+    approved_faqs = [
+        item
+        for item in (profile.get("faqs") or [])
+        if isinstance(item, dict)
+        and str(item.get("status") or "").lower() in {"approved", "reviewed", "published"}
+        and _text(item.get("question"))
+        and _text(item.get("answer"))
+    ]
+    if approved_faqs:
+        company_blocks.append(
+            "## Approved FAQs\n"
+            + "\n\n".join(
+                f"### {_text(item.get('question'))}\n{_text(item.get('answer'))}"
+                for item in approved_faqs[:40]
+            )
+        )
     applied_rules, rule_blocks = _applied_rules(profile, task_type, selected_fields)
     applied_templates, template_blocks, template_values = _applied_templates(profile, task_type, selected_fields)
     if rule_blocks:
@@ -225,9 +241,17 @@ def resolve_generation_context(
         }
         for artifact in [*factual_artifacts, *([keyword_artifact] if keyword_artifact else [])]
     ]
+    if approved_faqs:
+        source_artifacts.append({
+            "id": "faqs-approved",
+            "kind": "faq",
+            "title": f"Approved FAQs ({len(approved_faqs)})",
+        })
     warnings: list[str] = []
     if clean_keyword_category and not keyword_artifact:
         warnings.append("未找到已审核的所选词库类目，本次不使用词库。")
+    if not factual_artifacts and not approved_faqs:
+        warnings.append("当前站点没有已审核的公司/产品资料，结果可能偏通用。")
 
     summary = {
         "coreKeyword": clean_core_keyword,

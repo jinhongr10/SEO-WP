@@ -132,13 +132,19 @@ export const generateSEOFromTextContext = async (
   "Image SEO generation failed",
 ));
 
+type BlogGenerationOptions = {
+  siteId?: string;
+  keywordCategory?: string;
+};
+
 export const generateBlogOutline = async (
   _apiKey: string,
   topic: string,
   keywords: string,
   referenceContent?: string,
   keywordContext?: string,
-  companyContext?: string
+  companyContext?: string,
+  options: BlogGenerationOptions = {},
 ): Promise<string> => {
   const data = assertAiResponseOk(await postJson<{ value: string } & AiResponseMeta>("/ai/blog", {
     action: "outline",
@@ -147,6 +153,8 @@ export const generateBlogOutline = async (
     referenceContent,
     keywordContext,
     companyContext,
+    siteId: options.siteId || "",
+    keywordCategory: options.keywordCategory || "",
   }), "Blog outline generation failed");
   return requireGeneratedText(data.value, "blog outline");
 };
@@ -157,7 +165,8 @@ export const generateFullPost = async (
   approvedOutline: string,
   referenceContent?: string,
   keywordContext?: string,
-  companyContext?: string
+  companyContext?: string,
+  options: BlogGenerationOptions = {},
 ): Promise<string> => {
   const data = assertAiResponseOk(await postJson<{ value: string } & AiResponseMeta>("/ai/blog", {
     action: "post",
@@ -166,6 +175,8 @@ export const generateFullPost = async (
     referenceContent,
     keywordContext,
     companyContext,
+    siteId: options.siteId || "",
+    keywordCategory: options.keywordCategory || "",
   }), "Blog post generation failed");
   return requireGeneratedText(data.value, "blog post");
 };
@@ -174,13 +185,16 @@ export const refineBlogPost = async (
   _apiKey: string,
   currentContent: string,
   instruction: string,
-  companyContext?: string
+  companyContext?: string,
+  options: BlogGenerationOptions = {},
 ): Promise<string> => {
   const data = assertAiResponseOk(await postJson<{ value: string } & AiResponseMeta>("/ai/blog", {
     action: "refine",
     content: currentContent,
     instruction,
     companyContext,
+    siteId: options.siteId || "",
+    keywordCategory: options.keywordCategory || "",
   }), "Blog refinement failed");
   return requireGeneratedText(data.value, "refined blog post");
 };
@@ -191,7 +205,8 @@ export const rewriteBlogPost = async (
   instruction?: string,
   keywords?: string,
   keywordContext?: string,
-  companyContext?: string
+  companyContext?: string,
+  options: BlogGenerationOptions = {},
 ): Promise<string> => {
   const data = assertAiResponseOk(await postJson<{ value: string } & AiResponseMeta>("/ai/blog", {
     action: "rewrite",
@@ -200,6 +215,8 @@ export const rewriteBlogPost = async (
     keywords,
     keywordContext,
     companyContext,
+    siteId: options.siteId || "",
+    keywordCategory: options.keywordCategory || "",
   }), "Blog rewrite failed");
   return requireGeneratedText(data.value, "rewritten blog post");
 };
@@ -208,13 +225,16 @@ export const generateBlogSEO = async (
   _apiKey: string,
   content: string,
   keywordContext?: string,
-  companyContext?: string
+  companyContext?: string,
+  options: BlogGenerationOptions = {},
 ): Promise<BlogSEO> => {
   const data = assertAiResponseOk(await postJson<{ seo: BlogSEO } & AiResponseMeta>("/ai/blog", {
     action: "seo",
     content,
     keywordContext,
     companyContext,
+    siteId: options.siteId || "",
+    keywordCategory: options.keywordCategory || "",
   }), "Blog SEO generation failed");
   return validateBlogSEO(data.seo);
 };

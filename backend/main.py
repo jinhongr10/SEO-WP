@@ -19196,6 +19196,8 @@ class BlogActionPayload(BaseModel):
     referenceContent: str = ""
     keywordContext: str = ""
     companyContext: str = ""
+    siteId: str = ""
+    keywordCategory: str = ""
     outline: str = ""
     content: str = ""
     instruction: str = ""
@@ -25324,13 +25326,34 @@ def ai_blog(payload: BlogActionPayload):
         raise HTTPException(status_code=400, detail=_ai_missing_detail())
 
     action = (payload.action or "").strip().lower()
-    company_block = _build_company_prompt(payload.companyContext)
+    resolved_context = _resolve_request_generation_context(
+        site_id=payload.siteId if isinstance(payload.siteId, str) else "",
+        task_type="blog",
+        core_keyword=str(payload.keywords or payload.topic or "").strip(),
+        keyword_category=payload.keywordCategory if isinstance(payload.keywordCategory, str) else "",
+        target_text=" ".join(
+            str(value or "")
+            for value in (
+                payload.topic,
+                payload.keywords,
+                payload.outline,
+                payload.content,
+                payload.rewriteSource,
+            )
+        ),
+        selected_fields=["seoTitle", "metaDescription"],
+        legacy_keyword_context=payload.keywordContext,
+        legacy_company_context=payload.companyContext,
+    )
+    company_context = str(resolved_context.get("companyContext") or payload.companyContext or "")
+    keyword_context = str(resolved_context.get("keywordContext") or payload.keywordContext or "")
+    company_block = _build_company_prompt(company_context)
     keyword_block = f"""
 KEYWORD DATABASE:
 \"\"\"
-{payload.keywordContext[:50000]}
+{keyword_context[:50000]}
 \"\"\"
-""" if payload.keywordContext else ""
+""" if keyword_context else ""
     reference_block = f"""
 Reference Material:
 \"\"\"

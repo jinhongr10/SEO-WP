@@ -198,6 +198,34 @@ test('generateSEO posts siteId and keywordCategory on the form payload', async (
   }
 });
 
+test('generateBlogOutline posts siteId and keywordCategory', async () => {
+  const originalFetch = globalThis.fetch;
+  let body: Record<string, unknown> | null = null;
+  globalThis.fetch = (async (_input, init) => {
+    body = JSON.parse(String(init?.body || '{}'));
+    return new Response(JSON.stringify({ value: '## Outline' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }) as typeof fetch;
+
+  try {
+    await generateBlogOutline(
+      '',
+      'Demo topic',
+      'product sample',
+      '',
+      '',
+      '',
+      { siteId: 'site-a', keywordCategory: 'soap-dispenser' },
+    );
+    assert.equal(body?.siteId, 'site-a');
+    assert.equal(body?.keywordCategory, 'soap-dispenser');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('generateBlogOutline rejects an empty AI response value', async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = (async () => (

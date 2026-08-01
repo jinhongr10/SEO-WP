@@ -290,10 +290,18 @@ html[data-runtime="desktop"] .system-sidebar-brand-zone {
   padding-top: 48px;
 }
 
+/* Collapsed desktop brand zone: keep a compact strip.
+   macOS traffic lights use trafficLightPosition; Windows/Linux need only a short pad. */
 html[data-runtime="desktop"] :is([data-testid="desktop-sidebar"][data-collapsed="true"], .system-sidebar--collapsed) .system-sidebar-brand-zone {
-  min-height: 132px;
-  padding-top: 76px;
-  padding-bottom: 16px;
+  min-height: 0;
+  padding-top: 40px;
+  padding-bottom: 12px;
+}
+
+html[data-runtime="desktop"][data-platform="darwin"] :is([data-testid="desktop-sidebar"][data-collapsed="true"], .system-sidebar--collapsed) .system-sidebar-brand-zone {
+  min-height: 0;
+  padding-top: 48px;
+  padding-bottom: 12px;
 }
 
 html[data-runtime="desktop"] :is([data-testid="desktop-sidebar"][data-collapsed="true"], .system-sidebar--collapsed) .control-brand {

@@ -75,7 +75,11 @@ test("desktop window controls stay at each platform's native top edge", async ()
   assert.match(main, /trafficLightPosition:\s*process\.platform === 'darwin' \? \{ x:\s*12,\s*y:\s*16 \} : undefined/);
   assert.match(
     styles,
-    /html\[data-runtime="desktop"\]\s+:is\(\[data-testid="desktop-sidebar"\]\[data-collapsed="true"\],\s*\.system-sidebar--collapsed\)\s+\.system-sidebar-brand-zone\s*\{[\s\S]*?padding-top:\s*76px/,
+    /html\[data-runtime="desktop"\]\s+:is\(\[data-testid="desktop-sidebar"\]\[data-collapsed="true"\],\s*\.system-sidebar--collapsed\)\s+\.system-sidebar-brand-zone\s*\{[\s\S]*?padding-top:\s*40px/,
+  );
+  assert.match(
+    styles,
+    /html\[data-runtime="desktop"\]\[data-platform="darwin"\]\s+:is\(\[data-testid="desktop-sidebar"\]\[data-collapsed="true"\],\s*\.system-sidebar--collapsed\)\s+\.system-sidebar-brand-zone\s*\{[\s\S]*?padding-top:\s*48px/,
   );
   assert.match(
     styles,

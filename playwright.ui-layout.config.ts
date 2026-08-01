@@ -17,7 +17,8 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: 'npm run dev:frontend -- --host 127.0.0.1 --port 3103',
+    // Use node + vite.js (not npm) so Windows paths containing "&" do not break .bin shims.
+    command: 'node ./node_modules/vite/bin/vite.js --host 127.0.0.1 --port 3103',
     url: `${testServerUrl}/tests/ui-layout/harness.html`,
     reuseExistingServer: false,
     timeout: 120_000,

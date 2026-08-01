@@ -9,8 +9,28 @@ import {
 } from '../../services/clientProfileService';
 import { emptyRulePack } from '../../services/skillPackService';
 
-const QA_SITE_ID = 'qa-site';
+export const QA_SITE_ID = 'qa-site';
+export const QA_SITE_B_ID = 'qa-site-b';
+const RUNTIME_ID = 'qa-runtime';
 const checkedAt = '2026-07-20T01:00:00.000Z';
+
+type TaskScope = 'media' | 'product';
+type TaskStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
+
+type BackgroundTaskSnapshot = {
+  id: string;
+  runtimeId: string;
+  scope: TaskScope;
+  operation: string;
+  siteId: string;
+  status: TaskStatus;
+  queuePosition: number;
+  createdAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  lastError: string | null;
+  lastWarning: string | null;
+};
 
 const configuredSettings = {
   aiProvider: 'gemini',
@@ -51,14 +71,18 @@ const configuredSettings = {
   },
 };
 
-const activeSiteProfile = {
-  id: QA_SITE_ID,
-  name: 'Windows QA 站点',
-  siteName: 'Windows QA 站点',
-  siteUrl: 'https://qa.example.test',
-  brandName: 'QA Brand',
-  active: true,
-  settings: configuredSettings,
+const makeSiteProfile = (id: string, name: string, siteUrl: string, active: boolean) => ({
+  id,
+  name,
+  siteName: name,
+  siteUrl,
+  brandName: `${name} Brand`,
+  active,
+  settings: {
+    ...configuredSettings,
+    wpUrl: siteUrl,
+    gscSiteUrl: siteUrl,
+  },
   secretRefs: configuredSettings.secretRefs,
   knowledgeSources: [],
   knowledgeArtifacts: [],
@@ -92,13 +116,7 @@ const activeSiteProfile = {
   },
   createdAt: checkedAt,
   updatedAt: checkedAt,
-};
-
-const profilesResponse = {
-  company: { name: 'QA Company' },
-  activeSiteId: QA_SITE_ID,
-  sites: [activeSiteProfile],
-};
+});
 
 const healthyNetworkStatus = {
   ok: true,
@@ -143,14 +161,6 @@ const seoHealthSummary = {
   },
 };
 
-const mediaReport = {
-  ok: true,
-  totals: { totalMedia: 0, totalProcessed: 0, totalOptimized: 0, bytesSaved: 0, failures: 0 },
-  status: { isRunning: false, isQueued: false, operation: null, taskId: null, runtimeId: 'qa-runtime', queuePosition: 0, lastError: null, lastWarning: null },
-  failures: [],
-  byStatus: [],
-};
-
 const normalizedRequestSignature = (method: string, pathname: string, searchParams: URLSearchParams) => {
   const normalizedParams = new URLSearchParams();
   [...searchParams.entries()]
@@ -162,103 +172,63 @@ const normalizedRequestSignature = (method: string, pathname: string, searchPara
   return `${method.toUpperCase()} ${pathname}${query ? `?${query}` : ''}`;
 };
 
-const responseFor = (
-  pathname: string,
-  searchParams: URLSearchParams,
-  method: string,
-  networkHealthy: boolean,
-): unknown | undefined => {
-  const signature = normalizedRequestSignature(method, pathname, searchParams);
-  switch (signature) {
-    case 'GET /api/settings':
-      return configuredSettings;
-    case 'PUT /api/settings':
-      return { ok: true, settings: configuredSettings };
-    case 'GET /api/site-profiles':
-    case 'GET /api/site-profiles/summary':
-      return profilesResponse;
-    case 'GET /api/setup/status':
-      return { registered: true, setupComplete: true, siteCreated: true, checks: [] };
-    case 'GET /api/knowledge/sources':
-      return { ok: true, sources: [] };
-    case 'GET /api/ai/status':
-      return { ok: true, provider: 'gemini', configured: true, model: 'qa-model', verified: true };
-    case 'GET /api/system/network-status?background_refresh=true&max_age_seconds=60&prefer_cached=true':
-      return networkHealthy ? healthyNetworkStatus : unhealthyNetworkStatus;
-    case 'GET /api/skills/keyword-categories':
-      return { categories: [] };
-    case 'GET /api/skills/company-context':
-      return { context: 'QA company context' };
-    case `GET /api/site-profiles/${QA_SITE_ID}/knowledge`:
-      return { sources: [] };
-    case `GET /api/site-profiles/${QA_SITE_ID}/knowledge/artifacts`:
-      return { artifacts: [] };
-    case `GET /api/site-profiles/${QA_SITE_ID}/rules`:
-      return { rulePack: emptyRulePack() };
-    case `GET /api/site-profiles/${QA_SITE_ID}/link-index`:
-    case `POST /api/site-profiles/${QA_SITE_ID}/link-index/refresh`:
-      return { ok: true, items: [], total: 0, lastRunAt: checkedAt, warnings: [] };
-    case 'GET /api/seo-health/summary?background_refresh=true&blog_limit=50&issue_limit=50&prefer_cached=true':
-      return seoHealthSummary;
-    case 'GET /api/seo-gaps/cache-status':
-      return {
-        ok: true,
-        media: { hasCache: true, total: 0, latestUpdatedAt: checkedAt, oldestUpdatedAt: checkedAt },
-        product: { hasCache: true, total: 0, latestLastScannedAt: checkedAt, oldestLastScannedAt: checkedAt },
-        task: { isRunning: false, operation: null, lastError: null },
-      };
-    case 'GET /api/seo-gaps/search?limit=10&type=all':
-      return { ok: true, items: [], total: 0, limit: 10, offset: 0 };
-    case 'GET /api/daily-seo/tasks?limit=100':
-    case 'GET /api/daily-seo/tasks?limit=50&status=failed':
-      return { ok: true, items: [], total: 0 };
-    case 'GET /api/daily-seo/runs/current':
-      return null;
-    case 'GET /api/daily-seo/settings':
-      return { enabled: true, time: '18:00', timezone: 'Asia/Shanghai', lastRunDate: '', lastRunId: '', nextRunAt: '' };
-    case 'GET /api/seo-audit/batches':
-      return { ok: true, batches: [] };
-    case 'GET /api/seo-audit/tasks?limit=100':
-      return { ok: true, items: [], total: 0, limit: 100, offset: 0 };
-    case 'GET /api/media/report':
-      return mediaReport;
-    case 'GET /api/media/list?limit=10&page=1&sort=id_desc':
-      return { ok: true, items: [], total: 0, issue_summary: {} };
-    case 'GET /api/media/seo-review?limit=100&review_status=pending':
-      return { ok: true, items: [], total: 0 };
-    case 'GET /api/background-tasks/current?scope=media':
-    case 'GET /api/background-tasks/current?scope=product':
-      return { ok: true, runtimeId: 'qa-runtime', task: null };
-    case 'GET /api/products?limit=20&page=1':
-      return { ok: true, items: [], total: 0, issue_summary: {} };
-    case 'GET /api/products/categories?include_remote=1':
-      return { ok: true, items: [], warnings: [] };
-    case 'GET /api/products/tag-history?limit=120':
-      return { ok: true, items: [] };
-    case 'GET /api/product-review?status=pending':
-      return [];
-    case 'GET /api/page-planner/history?limit=50':
-      return { ok: true, items: [], total: 0 };
-    default:
-      return undefined;
-  }
+const siteProfilePathMatch = (pathname: string) => {
+  const match = pathname.match(/^\/api\/site-profiles\/([^/]+)(?:\/(.*))?$/);
+  if (!match) return null;
+  return { siteId: decodeURIComponent(match[1]), rest: match[2] || '' };
 };
 
 export type AppApiFixtureController = {
   recoverNetwork: () => void;
   getUnhandledRequests: () => string[];
+  getRequestLog: () => string[];
+  getActiveSiteId: () => string;
+  holdScansOpen: () => void;
+  allowAutoComplete: (polls?: number) => void;
+  completeTask: (siteId: string, scope: TaskScope) => void;
+  completeAllTasks: () => void;
+  getTask: (siteId: string, scope: TaskScope) => BackgroundTaskSnapshot | null;
   assertNoRuntimeErrors: () => Promise<void>;
   assertClean: () => Promise<void>;
 };
 
 export const installAppApiFixture = async (
   page: Page,
-  { networkInitiallyHealthy = true }: { networkInitiallyHealthy?: boolean } = {},
+  {
+    networkInitiallyHealthy = true,
+    multiSite = false,
+    holdScansOpen: holdScansOpenInitially = false,
+  }: {
+    networkInitiallyHealthy?: boolean;
+    multiSite?: boolean;
+    holdScansOpen?: boolean;
+  } = {},
 ): Promise<AppApiFixtureController> => {
   let networkHealthy = networkInitiallyHealthy;
+  let activeSiteId = QA_SITE_ID;
+  let holdScansOpen = holdScansOpenInitially;
+  let autoCompleteAfterPolls = holdScansOpenInitially ? Number.POSITIVE_INFINITY : 2;
   const unhandledApiRequests: string[] = [];
+  const requestLog: string[] = [];
   const pageErrors: string[] = [];
   const consoleErrors: string[] = [];
+  const tasksBySite: Record<string, Partial<Record<TaskScope, BackgroundTaskSnapshot>>> = {};
+  const taskById: Record<string, BackgroundTaskSnapshot> = {};
+  const pollCounts: Record<string, number> = {};
+  let taskSeq = 0;
+
+  const siteA = makeSiteProfile(QA_SITE_ID, 'Windows QA 站点', 'https://qa.example.test', true);
+  const siteB = makeSiteProfile(QA_SITE_B_ID, '第二 QA 站点', 'https://qa-b.example.test', false);
+  const sites = multiSite ? [siteA, siteB] : [siteA];
+
+  const mediaTotalsBySite: Record<string, number> = {
+    [QA_SITE_ID]: multiSite ? 7 : 0,
+    [QA_SITE_B_ID]: 3,
+  };
+  const productTotalsBySite: Record<string, number> = {
+    [QA_SITE_ID]: multiSite ? 12 : 0,
+    [QA_SITE_B_ID]: 4,
+  };
 
   const knownArcoReact19Diagnostics = new Set([
     'Accessing element.ref was removed in React 19. ref is now a regular prop. It will be removed from the JSX Element type in a future release.',
@@ -270,8 +240,292 @@ export const installAppApiFixture = async (
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
 
+  const buildTask = (siteId: string, scope: TaskScope, operation: string, status: TaskStatus = 'running'): BackgroundTaskSnapshot => {
+    taskSeq += 1;
+    const task: BackgroundTaskSnapshot = {
+      id: `task-${scope}-${siteId}-${taskSeq}`,
+      runtimeId: RUNTIME_ID,
+      scope,
+      operation,
+      siteId,
+      status,
+      queuePosition: status === 'queued' ? 1 : 0,
+      createdAt: checkedAt,
+      startedAt: status === 'running' || status === 'completed' ? checkedAt : null,
+      finishedAt: status === 'completed' || status === 'failed' || status === 'cancelled' ? checkedAt : null,
+      lastError: null,
+      lastWarning: null,
+    };
+    if (!tasksBySite[siteId]) tasksBySite[siteId] = {};
+    tasksBySite[siteId][scope] = task;
+    taskById[task.id] = task;
+    pollCounts[task.id] = 0;
+    return task;
+  };
+
+  const currentTask = (siteId: string, scope: TaskScope) => {
+    const task = tasksBySite[siteId]?.[scope] || null;
+    if (!task) return null;
+    if (task.status === 'queued' || task.status === 'running') return task;
+    return null;
+  };
+
+  const completeTaskInternal = (siteId: string, scope: TaskScope) => {
+    const task = tasksBySite[siteId]?.[scope];
+    if (!task) return;
+    const next: BackgroundTaskSnapshot = {
+      ...task,
+      status: 'completed',
+      queuePosition: 0,
+      finishedAt: new Date().toISOString(),
+      startedAt: task.startedAt || checkedAt,
+    };
+    tasksBySite[siteId][scope] = next;
+    taskById[next.id] = next;
+  };
+
+  const maybeAutoComplete = (task: BackgroundTaskSnapshot) => {
+    if (holdScansOpen) return task;
+    if (task.status !== 'queued' && task.status !== 'running') return task;
+    pollCounts[task.id] = (pollCounts[task.id] || 0) + 1;
+    if (pollCounts[task.id] >= autoCompleteAfterPolls) {
+      completeTaskInternal(task.siteId, task.scope);
+      return taskById[task.id];
+    }
+    return task;
+  };
+
+  const mediaReportForActiveSite = () => {
+    const task = currentTask(activeSiteId, 'media');
+    const totalMedia = mediaTotalsBySite[activeSiteId] ?? 0;
+    return {
+      ok: true,
+      totals: {
+        totalMedia,
+        totalProcessed: 0,
+        totalOptimized: 0,
+        bytesSaved: 0,
+        failures: 0,
+      },
+      status: {
+        isRunning: Boolean(task && task.status === 'running'),
+        isQueued: Boolean(task && task.status === 'queued'),
+        operation: task?.operation || null,
+        taskId: task?.id || null,
+        runtimeId: RUNTIME_ID,
+        queuePosition: task?.queuePosition || 0,
+        lastError: task?.lastError || null,
+        lastWarning: task?.lastWarning || null,
+      },
+      failures: [],
+      byStatus: totalMedia > 0 ? [{ status: 'scanned', total: totalMedia }] : [],
+    };
+  };
+
+  const profilesResponse = () => ({
+    company: { name: 'QA Company' },
+    activeSiteId,
+    sites: sites.map(site => ({
+      ...site,
+      active: site.id === activeSiteId,
+    })),
+  });
+
+  const resolveResponse = async (
+    pathname: string,
+    searchParams: URLSearchParams,
+    method: string,
+    postData: string | null,
+  ): Promise<unknown | undefined> => {
+    const signature = normalizedRequestSignature(method, pathname, searchParams);
+    const upper = method.toUpperCase();
+
+    if (upper === 'GET' && (pathname === '/api/desktop/health' || pathname === '/api/health')) {
+      return { ok: true, status: 'ready', runtimeId: RUNTIME_ID };
+    }
+    if (upper === 'GET' && pathname === '/api/settings') return configuredSettings;
+    if (upper === 'PUT' && pathname === '/api/settings') return { ok: true, settings: configuredSettings };
+    if (upper === 'GET' && (pathname === '/api/site-profiles' || pathname === '/api/site-profiles/summary')) {
+      return profilesResponse();
+    }
+    if (upper === 'PUT' && pathname === '/api/site-profiles/active') {
+      let nextId = activeSiteId;
+      try {
+        const body = postData ? JSON.parse(postData) as { id?: string } : {};
+        if (typeof body.id === 'string' && body.id.trim()) nextId = body.id.trim();
+      } catch {
+        /* ignore malformed body */
+      }
+      if (!sites.some(site => site.id === nextId)) {
+        return { ok: false, detail: `Unknown site ${nextId}` };
+      }
+      activeSiteId = nextId;
+      return { ok: true };
+    }
+
+    const sitePath = siteProfilePathMatch(pathname);
+    if (sitePath) {
+      const { siteId, rest } = sitePath;
+      if (upper === 'GET' && rest === '') {
+        const site = sites.find(item => item.id === siteId);
+        if (!site) return { ok: false, detail: 'Site not found' };
+        return {
+          activeSiteId,
+          company: { name: 'QA Company' },
+          site: { ...site, active: site.id === activeSiteId },
+        };
+      }
+      if (rest === 'knowledge' || rest === 'knowledge/artifacts') {
+        return rest === 'knowledge' ? { sources: [] } : { artifacts: [] };
+      }
+      if (rest === 'rules') return { rulePack: emptyRulePack() };
+      if (rest === 'link-index' || rest === 'link-index/refresh') {
+        return { ok: true, items: [], total: 0, lastRunAt: checkedAt, warnings: [] };
+      }
+    }
+
+    if (upper === 'GET' && pathname === '/api/setup/status') {
+      // Fail-closed for unexpected query signatures (app-workspaces regression).
+      if ([...searchParams.keys()].length > 0) return undefined;
+      return { registered: true, setupComplete: true, siteCreated: true, checks: [] };
+    }
+    if (upper === 'GET' && pathname === '/api/knowledge/sources') return { ok: true, sources: [] };
+    if (upper === 'GET' && pathname === '/api/ai/status') {
+      return { ok: true, provider: 'gemini', configured: true, model: 'qa-model', verified: true };
+    }
+    if (upper === 'GET' && pathname === '/api/system/network-status') {
+      return networkHealthy ? healthyNetworkStatus : unhealthyNetworkStatus;
+    }
+    if (upper === 'GET' && pathname === '/api/skills/keyword-categories') return { categories: [] };
+    if (upper === 'GET' && pathname === '/api/skills/company-context') return { context: 'QA company context' };
+
+    if (upper === 'GET' && pathname === '/api/seo-health/summary') return seoHealthSummary;
+    if (upper === 'GET' && pathname === '/api/seo-gaps/cache-status') {
+      return {
+        ok: true,
+        media: {
+          hasCache: true,
+          total: mediaTotalsBySite[activeSiteId] ?? 0,
+          latestUpdatedAt: checkedAt,
+          oldestUpdatedAt: checkedAt,
+        },
+        product: {
+          hasCache: true,
+          total: productTotalsBySite[activeSiteId] ?? 0,
+          latestLastScannedAt: checkedAt,
+          oldestLastScannedAt: checkedAt,
+        },
+        task: { isRunning: false, operation: null, lastError: null },
+      };
+    }
+    if (upper === 'GET' && pathname === '/api/seo-gaps/search') {
+      return { ok: true, items: [], total: 0, limit: Number(searchParams.get('limit') || 10), offset: 0 };
+    }
+    if (upper === 'GET' && pathname === '/api/daily-seo/tasks') return { ok: true, items: [], total: 0 };
+    if (upper === 'GET' && pathname === '/api/daily-seo/runs/current') return null;
+    if (upper === 'GET' && pathname === '/api/daily-seo/settings') {
+      return { enabled: true, time: '18:00', timezone: 'Asia/Shanghai', lastRunDate: '', lastRunId: '', nextRunAt: '' };
+    }
+    if (upper === 'GET' && pathname === '/api/seo-audit/batches') return { ok: true, batches: [] };
+    if (upper === 'GET' && pathname === '/api/seo-audit/tasks') {
+      return { ok: true, items: [], total: 0, limit: Number(searchParams.get('limit') || 100), offset: 0 };
+    }
+
+    if (upper === 'GET' && pathname === '/api/media/report') return mediaReportForActiveSite();
+    if (upper === 'GET' && pathname === '/api/media/list') {
+      const total = mediaTotalsBySite[activeSiteId] ?? 0;
+      return { ok: true, items: [], total, issue_summary: {} };
+    }
+    if (upper === 'GET' && pathname === '/api/media/seo-review') {
+      return { ok: true, items: [], total: 0 };
+    }
+    if (upper === 'GET' && pathname === '/api/media/rest-replace-status') {
+      return {
+        available: false,
+        code: 'not_configured',
+        detail: 'REST replace is not configured in the QA fixture.',
+        sftpConfigured: false,
+        canFallbackToSftp: false,
+      };
+    }
+    if (upper === 'POST' && pathname === '/api/media/scan') {
+      const task = buildTask(activeSiteId, 'media', 'scan', 'running');
+      return { ok: true, taskId: task.id, task };
+    }
+    if (upper === 'POST' && (pathname === '/api/media/run' || pathname === '/api/media/stop')) {
+      if (pathname.endsWith('/stop')) {
+        completeTaskInternal(activeSiteId, 'media');
+        return { ok: true };
+      }
+      const task = buildTask(activeSiteId, 'media', 'run', 'running');
+      return { ok: true, taskId: task.id, task };
+    }
+
+    if (upper === 'GET' && pathname === '/api/background-tasks/current') {
+      const scope = (searchParams.get('scope') || 'media') as TaskScope;
+      const task = currentTask(activeSiteId, scope);
+      return { ok: true, runtimeId: RUNTIME_ID, task };
+    }
+    if (upper === 'GET' && pathname.startsWith('/api/background-tasks/')) {
+      const taskId = decodeURIComponent(pathname.slice('/api/background-tasks/'.length).split('/')[0] || '');
+      const task = taskById[taskId];
+      if (!task) return { ok: false, detail: 'Task not found' };
+      return { ok: true, task: maybeAutoComplete(task) };
+    }
+    if (upper === 'POST' && pathname.endsWith('/cancel') && pathname.startsWith('/api/background-tasks/')) {
+      const taskId = decodeURIComponent(pathname.replace('/api/background-tasks/', '').replace('/cancel', ''));
+      const task = taskById[taskId];
+      if (!task) return { ok: false, detail: 'Task not found' };
+      const cancelled: BackgroundTaskSnapshot = {
+        ...task,
+        status: 'cancelled',
+        finishedAt: new Date().toISOString(),
+        queuePosition: 0,
+      };
+      taskById[taskId] = cancelled;
+      if (tasksBySite[task.siteId]?.[task.scope]?.id === taskId) {
+        tasksBySite[task.siteId][task.scope] = cancelled;
+      }
+      return { ok: true, task: cancelled };
+    }
+
+    // Product dashboard issues requestJson('/product-scan') without method → GET.
+    if ((upper === 'POST' || upper === 'GET') && pathname === '/api/product-scan') {
+      const task = buildTask(activeSiteId, 'product', 'product-scan', 'running');
+      return { ok: true, task };
+    }
+    if (upper === 'GET' && pathname === '/api/products') {
+      return {
+        ok: true,
+        items: [],
+        total: productTotalsBySite[activeSiteId] ?? 0,
+        issue_summary: {},
+      };
+    }
+    if (upper === 'GET' && pathname === '/api/products/categories') {
+      return { ok: true, items: [], warnings: [] };
+    }
+    if (upper === 'GET' && pathname === '/api/products/tag-history') {
+      return { ok: true, items: [] };
+    }
+    if (upper === 'GET' && pathname === '/api/product-review') return [];
+
+    if (upper === 'GET' && pathname === '/api/page-planner/history') {
+      return { ok: true, items: [], total: 0 };
+    }
+
+    // Preserve exact-signature fail-closed for unexpected methods on known GETs.
+    if (signature === 'POST /api/setup/status') return undefined;
+    if (signature.startsWith('GET /api/media/list?') && upper === 'GET') {
+      return { ok: true, items: [], total: mediaTotalsBySite[activeSiteId] ?? 0, issue_summary: {} };
+    }
+
+    return undefined;
+  };
+
   await page.addInitScript(() => {
     window.localStorage.setItem('desktop.setupBrowseModeDismissed', 'true');
+    window.localStorage.setItem('desktop.sidebarCollapsed', 'false');
     const updateStatus = {
       phase: 'not-available',
       currentVersion: '0.1.2',
@@ -306,7 +560,13 @@ export const installAppApiFixture = async (
     const request = route.request();
     const url = new URL(request.url());
     const requestKey = normalizedRequestSignature(request.method(), url.pathname, url.searchParams);
-    const response = responseFor(url.pathname, url.searchParams, request.method(), networkHealthy);
+    requestLog.push(requestKey);
+    const response = await resolveResponse(
+      url.pathname,
+      url.searchParams,
+      request.method(),
+      request.postData(),
+    );
     if (response !== undefined) {
       await route.fulfill({ json: response });
       return;
@@ -326,6 +586,24 @@ export const installAppApiFixture = async (
   return {
     recoverNetwork: () => { networkHealthy = true; },
     getUnhandledRequests: () => [...unhandledApiRequests],
+    getRequestLog: () => [...requestLog],
+    getActiveSiteId: () => activeSiteId,
+    holdScansOpen: () => {
+      holdScansOpen = true;
+      autoCompleteAfterPolls = Number.POSITIVE_INFINITY;
+    },
+    allowAutoComplete: (polls = 2) => {
+      holdScansOpen = false;
+      autoCompleteAfterPolls = polls;
+    },
+    completeTask: (siteId, scope) => completeTaskInternal(siteId, scope),
+    completeAllTasks: () => {
+      for (const siteId of Object.keys(tasksBySite)) {
+        completeTaskInternal(siteId, 'media');
+        completeTaskInternal(siteId, 'product');
+      }
+    },
+    getTask: (siteId, scope) => tasksBySite[siteId]?.[scope] || null,
     assertNoRuntimeErrors,
     assertClean: async () => {
       await expect(unhandledApiRequests, 'all App API requests should have schema-valid fixture responses').toEqual([]);

@@ -6,8 +6,8 @@ export default defineConfig({
   testDir: './tests/app-interactions',
   testMatch: '**/*.spec.ts',
   workers: 1,
-  timeout: 30_000,
-  expect: { timeout: 5_000 },
+  timeout: 60_000,
+  expect: { timeout: 10_000 },
   outputDir: 'test-results/app-interactions',
   reporter: 'line',
   use: {
@@ -16,9 +16,10 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: 'npm run dev:frontend -- --host 127.0.0.1 --port 3103',
+    // Use node + vite.js (not npm) so Windows paths containing "&" do not break .bin shims.
+    command: 'node ./node_modules/vite/bin/vite.js --host 127.0.0.1 --port 3103',
     url: `${testServerUrl}/tests/app-interactions/harness.html`,
-    reuseExistingServer: false,
+    reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
 });

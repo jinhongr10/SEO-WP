@@ -163,3 +163,44 @@ export const clickScanProducts = async (page: Page) => {
   await expect(button).toBeVisible();
   await button.click();
 };
+
+/** 1x1 PNG — valid for browser Image() decode used by loadImage(). */
+export const MINIMAL_PNG_BASE64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+export const openImageWorkspace = async (page: Page) => {
+  const tab = page.getByTestId('mode-tab-mediaWorkspace');
+  await expect(tab).not.toHaveClass(/arco-menu-disabled/);
+  await tab.click();
+  await expect(tab).toHaveClass(/arco-menu-selected/);
+  await page.getByTestId('media-subtab-image').click();
+};
+
+export const uploadFakeImage = async (page: Page, fileName = 'qa-fake.png') => {
+  await openImageWorkspace(page);
+  // Empty state uses ArcoUpload; prefer file input when present, else shell drop.
+  const empty = page.getByTestId('image-empty-upload-dropzone');
+  if (await empty.isVisible().catch(() => false)) {
+    const fileInput = page.locator('.workspace-empty-upload-control input[type="file"], input[type="file"][accept*="image"]').first();
+    await fileInput.setInputFiles({
+      name: fileName,
+      mimeType: 'image/png',
+      buffer: Buffer.from(MINIMAL_PNG_BASE64, 'base64'),
+    });
+  } else {
+    // Already has images — use the compact add control if present.
+    const fileInput = page.locator('input[type="file"][accept*="image"]').first();
+    await fileInput.setInputFiles({
+      name: fileName,
+      mimeType: 'image/png',
+      buffer: Buffer.from(MINIMAL_PNG_BASE64, 'base64'),
+    });
+  }
+  await expect(page.getByTestId('image-processing-layout')).toBeVisible({ timeout: 15_000 });
+};
+
+export const mediaScanButton = (page: Page) => page.getByRole('button', { name: /扫描媒体库|扫描中|排队中/ });
+
+export const openSeoAudit = async (page: Page) => {
+  await openMode(page, 'seoAudit', page.getByTestId('seo-audit-file-input'));
+};

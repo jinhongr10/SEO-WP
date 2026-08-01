@@ -187,7 +187,12 @@ export type AppApiFixtureController = {
   allowAutoComplete: (polls?: number) => void;
   completeTask: (siteId: string, scope: TaskScope) => void;
   completeAllTasks: () => void;
+  failTask: (siteId: string, scope: TaskScope, lastError?: string) => void;
+  failNextMediaScan: (detail?: string) => void;
+  failNextProductScan: (detail?: string) => void;
   getTask: (siteId: string, scope: TaskScope) => BackgroundTaskSnapshot | null;
+  /** Includes completed/failed/cancelled snapshots, not only active. */
+  getTaskSnapshot: (siteId: string, scope: TaskScope) => BackgroundTaskSnapshot | null;
   assertNoRuntimeErrors: () => Promise<void>;
   assertClean: () => Promise<void>;
 };
@@ -208,6 +213,8 @@ export const installAppApiFixture = async (
   let activeSiteId = QA_SITE_ID;
   let holdScansOpen = holdScansOpenInitially;
   let autoCompleteAfterPolls = holdScansOpenInitially ? Number.POSITIVE_INFINITY : 2;
+  let nextMediaScanError: string | null = null;
+  let nextProductScanError: string | null = null;
   const unhandledApiRequests: string[] = [];
   const requestLog: string[] = [];
   const pageErrors: string[] = [];
@@ -276,6 +283,35 @@ export const installAppApiFixture = async (
     const next: BackgroundTaskSnapshot = {
       ...task,
       status: 'completed',
+      queuePosition: 0,
+      finishedAt: new Date().toISOString(),
+      startedAt: task.startedAt || checkedAt,
+    };
+    tasksBySite[siteId][scope] = next;
+    taskById[next.id] = next;
+  };
+
+  const failTaskInternal = (siteId: string, scope: TaskScope, lastError = 'Fixture simulated scan failure') => {
+    const task = tasksBySite[siteId]?.[scope];
+    if (!task) return;
+    const next: BackgroundTaskSnapshot = {
+      ...task,
+      status: 'failed',
+      queuePosition: 0,
+      finishedAt: new Date().toISOString(),
+      startedAt: task.startedAt || checkedAt,
+      lastError,
+    };
+    tasksBySite[siteId][scope] = next;
+    taskById[next.id] = next;
+  };
+
+  const cancelTaskInternal = (siteId: string, scope: TaskScope) => {
+    const task = tasksBySite[siteId]?.[scope];
+    if (!task) return;
+    const next: BackgroundTaskSnapshot = {
+      ...task,
+      status: 'cancelled',
       queuePosition: 0,
       finishedAt: new Date().toISOString(),
       startedAt: task.startedAt || checkedAt,
@@ -449,12 +485,17 @@ export const installAppApiFixture = async (
       };
     }
     if (upper === 'POST' && pathname === '/api/media/scan') {
+      if (nextMediaScanError) {
+        const detail = nextMediaScanError;
+        nextMediaScanError = null;
+        return { ok: false, detail };
+      }
       const task = buildTask(activeSiteId, 'media', 'scan', 'running');
       return { ok: true, taskId: task.id, task };
     }
     if (upper === 'POST' && (pathname === '/api/media/run' || pathname === '/api/media/stop')) {
       if (pathname.endsWith('/stop')) {
-        completeTaskInternal(activeSiteId, 'media');
+        cancelTaskInternal(activeSiteId, 'media');
         return { ok: true };
       }
       const task = buildTask(activeSiteId, 'media', 'run', 'running');
@@ -491,6 +532,11 @@ export const installAppApiFixture = async (
 
     // Product dashboard issues requestJson('/product-scan') without method → GET.
     if ((upper === 'POST' || upper === 'GET') && pathname === '/api/product-scan') {
+      if (nextProductScanError) {
+        const detail = nextProductScanError;
+        nextProductScanError = null;
+        return { ok: false, detail };
+      }
       const task = buildTask(activeSiteId, 'product', 'product-scan', 'running');
       return { ok: true, task };
     }
@@ -603,7 +649,15 @@ export const installAppApiFixture = async (
         completeTaskInternal(siteId, 'product');
       }
     },
+    failTask: (siteId, scope, lastError) => failTaskInternal(siteId, scope, lastError),
+    failNextMediaScan: (detail = '媒体扫描失败（测试夹具）') => {
+      nextMediaScanError = detail;
+    },
+    failNextProductScan: (detail = '产品扫描失败（测试夹具）') => {
+      nextProductScanError = detail;
+    },
     getTask: (siteId, scope) => tasksBySite[siteId]?.[scope] || null,
+    getTaskSnapshot: (siteId, scope) => tasksBySite[siteId]?.[scope] || null,
     assertNoRuntimeErrors,
     assertClean: async () => {
       await expect(unhandledApiRequests, 'all App API requests should have schema-valid fixture responses').toEqual([]);

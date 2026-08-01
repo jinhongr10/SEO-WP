@@ -39,6 +39,7 @@ interface CommandCenterDashboardProps {
   initialSummary?: SeoHealthSummary;
   onNavigate?: (mode: string, options?: SeoHealthNavigationOptions) => void;
   activeSiteProfile?: {
+    id?: string;
     name?: string;
     siteName?: string;
     siteUrl?: string;
@@ -644,11 +645,18 @@ export const CommandCenterDashboard: React.FC<CommandCenterDashboardProps> = ({
     }
   }, []);
 
+  const activeSiteKey = activeSiteProfile?.id || activeSiteProfile?.siteUrl || activeSiteProfile?.siteName || '';
+  const previousSiteKeyRef = React.useRef<string | null>(null);
+
   useEffect(() => {
     if (!enabled) return;
     if (initialSummary) return;
-    loadSummary();
-  }, [enabled, initialSummary, loadSummary]);
+    const previous = previousSiteKeyRef.current;
+    previousSiteKeyRef.current = activeSiteKey;
+    // Refetch when the user switches sites so SEO health never sticks to the prior site.
+    const switchedSite = previous !== null && previous !== activeSiteKey;
+    void loadSummary({ forceRefresh: switchedSite });
+  }, [activeSiteKey, enabled, initialSummary, loadSummary]);
 
   const allIssues = summary?.issues || [];
   const issueTypeOptions = useMemo(() => uniqueIssueTitles(allIssues), [allIssues]);

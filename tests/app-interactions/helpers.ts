@@ -204,3 +204,35 @@ export const mediaScanButton = (page: Page) => page.getByRole('button', { name: 
 export const openSeoAudit = async (page: Page) => {
   await openMode(page, 'seoAudit', page.getByTestId('seo-audit-file-input'));
 };
+
+export const openBlogFormat = async (page: Page) => {
+  const tab = page.getByTestId('mode-tab-blogWorkspace');
+  await expect(tab).not.toHaveClass(/arco-menu-disabled/);
+  await tab.click();
+  await expect(tab).toHaveClass(/arco-menu-selected/);
+  await page.getByTestId('blog-subtab-blogFormat').click();
+  await expect(page.getByTestId('blog-format-filter-panel')).toBeVisible();
+};
+
+export const clickScanBlog = async (page: Page) => {
+  const button = page.getByRole('button', { name: /扫描博客|重新扫描博客|扫描中/ });
+  await expect(button).toBeVisible();
+  await button.click();
+};
+
+export const openCommandCenter = async (page: Page) => {
+  await openMode(page, 'commandCenter', page.getByTestId('command-center-seo-audit'));
+};
+
+export const expectSidebarCollapsed = async (page: Page, collapsed: boolean) => {
+  const sidebar = desktopSidebar(page);
+  await expect.poll(async () => {
+    const attr = await sidebar.getAttribute('data-collapsed');
+    if (attr === String(collapsed)) return true;
+    return sidebar.evaluate((el, wantCollapsed) => {
+      const isCollapsed = el.classList.contains('system-sidebar--collapsed')
+        || el.classList.contains('arco-layout-sider-collapsed');
+      return isCollapsed === wantCollapsed;
+    }, collapsed);
+  }).toBe(true);
+};

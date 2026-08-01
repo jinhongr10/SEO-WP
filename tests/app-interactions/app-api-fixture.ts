@@ -140,26 +140,79 @@ const unhealthyNetworkStatus = {
   ],
 };
 
-const seoHealthSummary = {
+const makeSeoHealthSummary = (score: number, critical: number, warningsCount: number, notices: number) => ({
   ok: true,
-  score: 100,
-  label: 'Healthy',
+  score,
+  label: score >= 90 ? 'Healthy' : score >= 70 ? 'Can Improve' : 'Needs Work',
   updatedAt: checkedAt,
-  critical: 0,
-  warningsCount: 0,
-  notices: 0,
+  critical,
+  warningsCount,
+  notices,
   generatedUnsynced: 0,
-  groups: [],
-  issues: [],
+  groups: [
+    {
+      key: 'products',
+      label: 'WooCommerce Products',
+      score,
+      total: Math.max(1, critical + warningsCount),
+      critical,
+      warnings: warningsCount,
+      notices,
+      available: true,
+      summary: `Fixture product group for score ${score}`,
+    },
+    {
+      key: 'media',
+      label: 'WordPress Media',
+      score: Math.min(100, score + 5),
+      total: 3,
+      critical: 0,
+      warnings: 1,
+      notices: 0,
+      available: true,
+      summary: 'Fixture media group',
+    },
+  ],
+  issues: critical > 0
+    ? [{
+      id: `issue-${score}`,
+      group: 'products',
+      severity: 'critical' as const,
+      scoreImpact: 10,
+      title: `Fixture critical issue score ${score}`,
+      detail: 'Synthetic issue for multi-site SEO health isolation.',
+      targetId: 1,
+      targetLabel: `Product for score ${score}`,
+    }]
+    : [],
   warnings: [],
   cacheStatus: {
-    source: 'fresh',
+    source: 'fresh' as const,
     stale: false,
     refreshRunning: false,
     lastRunAt: checkedAt,
     lastError: '',
   },
-};
+});
+
+const makeBlogPost = (id: number, title: string) => ({
+  id,
+  title,
+  slug: `post-${id}`,
+  status: 'publish',
+  modified: checkedAt,
+  link: `https://qa.example.test/blog/post-${id}`,
+  summary: {
+    wordCount: 120,
+    headingCount: 2,
+    tableCount: 0,
+    imageCount: 1,
+    linkCount: 1,
+    hasEditorFriendlyBlocks: true,
+  },
+  seoStatus: { state: 'ok', label: 'SEO OK' },
+  coreKeyword: `keyword-${id}`,
+});
 
 const normalizedRequestSignature = (method: string, pathname: string, searchParams: URLSearchParams) => {
   const normalizedParams = new URLSearchParams();
@@ -180,6 +233,7 @@ const siteProfilePathMatch = (pathname: string) => {
 
 export type AppApiFixtureController = {
   recoverNetwork: () => void;
+  breakNetwork: () => void;
   getUnhandledRequests: () => string[];
   getRequestLog: () => string[];
   getActiveSiteId: () => string;
@@ -203,10 +257,13 @@ export const installAppApiFixture = async (
     networkInitiallyHealthy = true,
     multiSite = false,
     holdScansOpen: holdScansOpenInitially = false,
+    /** When set, seed desktop.sidebarCollapsed before App mounts. Omit to leave storage alone. */
+    sidebarCollapsedSeed,
   }: {
     networkInitiallyHealthy?: boolean;
     multiSite?: boolean;
     holdScansOpen?: boolean;
+    sidebarCollapsedSeed?: boolean;
   } = {},
 ): Promise<AppApiFixtureController> => {
   let networkHealthy = networkInitiallyHealthy;
@@ -235,6 +292,19 @@ export const installAppApiFixture = async (
   const productTotalsBySite: Record<string, number> = {
     [QA_SITE_ID]: multiSite ? 12 : 0,
     [QA_SITE_B_ID]: 4,
+  };
+  const seoHealthBySite: Record<string, ReturnType<typeof makeSeoHealthSummary>> = {
+    [QA_SITE_ID]: makeSeoHealthSummary(multiSite ? 88 : 100, multiSite ? 1 : 0, multiSite ? 2 : 0, 0),
+    [QA_SITE_B_ID]: makeSeoHealthSummary(41, 4, 3, 1),
+  };
+  const blogPostsBySite: Record<string, ReturnType<typeof makeBlogPost>[]> = {
+    [QA_SITE_ID]: [
+      makeBlogPost(101, 'Site A Blog Alpha'),
+      makeBlogPost(102, 'Site A Blog Beta'),
+    ],
+    [QA_SITE_B_ID]: [
+      makeBlogPost(201, 'Site B Blog Only'),
+    ],
   };
 
   const knownArcoReact19Diagnostics = new Set([
@@ -435,7 +505,27 @@ export const installAppApiFixture = async (
     if (upper === 'GET' && pathname === '/api/skills/keyword-categories') return { categories: [] };
     if (upper === 'GET' && pathname === '/api/skills/company-context') return { context: 'QA company context' };
 
-    if (upper === 'GET' && pathname === '/api/seo-health/summary') return seoHealthSummary;
+    if (upper === 'GET' && pathname === '/api/seo-health/summary') {
+      return seoHealthBySite[activeSiteId] || makeSeoHealthSummary(100, 0, 0, 0);
+    }
+    if (upper === 'GET' && pathname === '/api/blog/bulk-format/posts') {
+      const items = blogPostsBySite[activeSiteId] || [];
+      return { ok: true, items, warnings: [] };
+    }
+    if (upper === 'GET' && pathname.startsWith('/api/blog/bulk-format/posts/') && pathname.endsWith('/detail')) {
+      const idMatch = pathname.match(/\/posts\/(\d+)\/detail$/);
+      const id = Number(idMatch?.[1] || 0);
+      const post = (blogPostsBySite[activeSiteId] || []).find(item => item.id === id) || makeBlogPost(id || 1, 'Fixture detail');
+      return {
+        ok: true,
+        ...post,
+        contentHtml: `<p>${post.title} body</p>`,
+        excerpt: post.title,
+      };
+    }
+    if (upper === 'GET' && pathname === '/api/blog/drafts') {
+      return { ok: true, items: [] };
+    }
     if (upper === 'GET' && pathname === '/api/seo-gaps/cache-status') {
       return {
         ok: true,
@@ -569,9 +659,11 @@ export const installAppApiFixture = async (
     return undefined;
   };
 
-  await page.addInitScript(() => {
+  await page.addInitScript(({ sidebarSeed }) => {
     window.localStorage.setItem('desktop.setupBrowseModeDismissed', 'true');
-    window.localStorage.setItem('desktop.sidebarCollapsed', 'false');
+    if (typeof sidebarSeed === 'boolean') {
+      window.localStorage.setItem('desktop.sidebarCollapsed', String(sidebarSeed));
+    }
     const updateStatus = {
       phase: 'not-available',
       currentVersion: '0.1.2',
@@ -600,7 +692,7 @@ export const installAppApiFixture = async (
       installUpdate: async () => updateStatus,
       onUpdateStatus: () => () => {},
     };
-  });
+  }, { sidebarSeed: sidebarCollapsedSeed });
 
   await page.route('**/api/**', async (route: Route) => {
     const request = route.request();
@@ -631,6 +723,7 @@ export const installAppApiFixture = async (
 
   return {
     recoverNetwork: () => { networkHealthy = true; },
+    breakNetwork: () => { networkHealthy = false; },
     getUnhandledRequests: () => [...unhandledApiRequests],
     getRequestLog: () => [...requestLog],
     getActiveSiteId: () => activeSiteId,
